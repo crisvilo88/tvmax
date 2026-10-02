@@ -607,19 +607,25 @@
     // IMPORTANTE: la meta del administrador cuenta SOLO ventas.
     const made=getAdminMonthlySales().length||ventas,goal=getAdminMonthlyGoal(),pct=goal?Math.min(100,Math.round(made/goal*100)):0;
     setText("dash-admin-goal-title",`${made} / ${goal} ventas`);
-    setText("dash-admin-goal-period",`Meta total de ${dashboardAdvisors.length} asesor${dashboardAdvisors.length===1?"":"es"} activos para ${getMonthLabel()}. El avance individual incluye ventas y reconexiones del mes.`);
+    setText("dash-admin-goal-period",`Meta total de ${dashboardAdvisors.length} asesor${dashboardAdvisors.length===1?"":"es"} activos para ${getMonthLabel()}. El avance individual cuenta SOLO ventas (las reconexiones se muestran aparte, abajo).`);
     if(id("dash-admin-goal-bar"))id("dash-admin-goal-bar").style.width=`${pct}%`;
     setText("dash-admin-goal-percent",`${pct}%`);
     setText("dash-admin-goal-detail",`${made} ventas realizadas de ${goal}`);
+    // IMPORTANTE: el cumplimiento de meta de cada asesor cuenta SOLO ventas (a.ventas), nunca a.realizadas
+    // (que mezcla ventas+reconexiones) porque la meta mensual se mide en ventas, no en operaciones totales.
     if(id("dash-admin-goal-breakdown"))id("dash-admin-goal-breakdown").innerHTML=dashboardAdvisors.filter(a=>a.activo!==false).map(a=>{
-      const n=[a.nombre,a.apellido].filter(Boolean).join(" ")||a.email||"Asesor",g=Math.max(1,Number(a.meta)||50),count=Number(a.realizadas)||0,ap=Math.min(100,Math.round(count/g*100));
+      const n=[a.nombre,a.apellido].filter(Boolean).join(" ")||a.email||"Asesor",g=Math.max(1,Number(a.meta)||50),count=Number(a.ventas)||0,ap=Math.min(100,Math.round(count/g*100));
       return `<div class="admin-goal-breakdown-row"><span>${escapeHTML(n)}</span><strong>${count}/${g}</strong><small>${ap}%</small></div>`;
     }).join("")||'<span class="muted">No hay asesores activos.</span>';
     id("dash-goals-list").innerHTML=dashboardAdvisors.filter(a=>a.activo!==false).map(a=>{
-      const n=[a.nombre,a.apellido].filter(Boolean).join(" ")||a.email,count=Number(a.realizadas)||0,g=Math.max(1,Number(a.meta)||50),ap=Math.min(100,Math.round(count/g*100));
-      return `<div class="goal-list-row"><div><strong>${escapeHTML(n)}</strong><small>${count} / ${g} operaciones</small></div><div class="mini-progress"><span style="width:${ap}%"></span></div><b>${ap}%</b></div>`;
+      const n=[a.nombre,a.apellido].filter(Boolean).join(" ")||a.email,count=Number(a.ventas)||0,g=Math.max(1,Number(a.meta)||50),ap=Math.min(100,Math.round(count/g*100)),recon=Number(a.reconexiones)||0;
+      return `<div class="goal-list-row"><div><strong>${escapeHTML(n)}</strong><small>${count} / ${g} ventas${recon?` · ${recon} reconexión${recon===1?"":"es"}`:""}</small></div><div class="mini-progress"><span style="width:${ap}%"></span></div><b>${ap}%</b></div>`;
     }).join("")||'<p class="muted">No hay asesores activos.</p>';
     const serviceCounts=d.servicios&&typeof d.servicios==="object"?d.servicios:{};const counts=SERVICES.map(s=>({s,n:Number(serviceCounts[s])||0}));const max=Math.max(1,...counts.map(x=>x.n));id("dash-services-list").innerHTML=counts.map(x=>`<div class="mini-bar-row"><span>${x.s}</span><div><i style="width:${x.n/max*100}%"></i></div><strong>${x.n}</strong></div>`).join("");
+    // Gráfico aparte de reconexiones por asesor (no cuentan para la meta, pero se deben poder ver).
+    const reconRows=dashboardAdvisors.filter(a=>a.activo!==false).map(a=>({n:[a.nombre,a.apellido].filter(Boolean).join(" ")||a.email||"Asesor",v:Number(a.reconexiones)||0})).sort((x,y)=>y.v-x.v);
+    const reconMax=Math.max(1,...reconRows.map(x=>x.v));
+    if(id("dash-reconexiones-list"))id("dash-reconexiones-list").innerHTML=reconRows.length?reconRows.map(x=>`<div class="mini-bar-row"><span>${escapeHTML(x.n)}</span><div><i style="width:${x.v/reconMax*100}%"></i></div><strong>${x.v}</strong></div>`).join(""):'<p class="muted">No hay asesores activos.</p>';
   }
 
   async function loadAdminSalesForFilters(force=false){
@@ -749,7 +755,7 @@
   }
 
   function buildReportHTML(){const filtered=getFilteredAdminSales(),total=filtered.length,ventas=filtered.filter(s=>s.tipo_operacion==="Venta").length,recon=filtered.filter(s=>s.tipo_operacion==="Reconexión").length,otros=filtered.filter(s=>s.tipo_operacion==="Otros").length,real=filtered.filter(s=>s.estado_instalacion==="REALIZADA").length,pending=filtered.filter(s=>s.estado_instalacion==="PENDIENTE").length,cancel=filtered.filter(s=>s.estado_instalacion==="CANCELADA").length,pct=n=>total?Math.round(n/total*100):0;
-    const advisorMap={};filtered.forEach(s=>{const a=s.perfiles||{},n=[a.nombre,a.apellido].filter(Boolean).join(" ")||"Sin asesor";if(!advisorMap[n])advisorMap[n]={ventas:0,meta:Math.max(1,Number(a.meta_mensual)||50)};if(isGoalOperation(s))advisorMap[n].ventas++;});const advisorRows=Object.entries(advisorMap).sort((a,b)=>b[1].ventas-a[1].ventas).map(([n,d])=>{const gp=Math.min(100,Math.round(d.ventas/d.meta*100));return `<div class="print-advisor-row"><div class="print-advisor-label"><span>${escapeHTML(n)}</span><strong>${d.ventas}/${d.meta} operaciones · ${gp}%</strong></div><div class="print-bar-track"><div class="print-bar-fill" style="width:${gp}%"></div></div></div>`;}).join("")||'<div class="print-empty-chart">Sin datos</div>';
+    const advisorMap={};filtered.forEach(s=>{const a=s.perfiles||{},n=[a.nombre,a.apellido].filter(Boolean).join(" ")||"Sin asesor";if(!advisorMap[n])advisorMap[n]={ventas:0,recon:0,meta:Math.max(1,Number(a.meta_mensual)||50)};if(s.tipo_operacion==="Venta")advisorMap[n].ventas++;else if(s.tipo_operacion==="Reconexión")advisorMap[n].recon++;});const advisorRows=Object.entries(advisorMap).sort((a,b)=>b[1].ventas-a[1].ventas).map(([n,d])=>{const gp=Math.min(100,Math.round(d.ventas/d.meta*100));return `<div class="print-advisor-row"><div class="print-advisor-label"><span>${escapeHTML(n)}</span><strong>${d.ventas}/${d.meta} ventas · ${gp}%${d.recon?` <small>(+${d.recon} reconexión${d.recon===1?"":"es"})</small>`:""}</strong></div><div class="print-bar-track"><div class="print-bar-fill" style="width:${gp}%"></div></div></div>`;}).join("")||'<div class="print-empty-chart">Sin datos</div>';
     const adminMonthlySales=getAdminMonthlySales(),adminGoal=getAdminMonthlyGoal(),adminMade=adminMonthlySales.length,adminPct=adminGoal?Math.min(100,Math.round(adminMade/adminGoal*100)):0;
     const goalPeople=adminGoalAdvisors.length?adminGoalAdvisors:advisors;
     const adminGoalRows=goalPeople.filter(a=>a.activo!==false).map(a=>{const n=[a.nombre,a.apellido].filter(Boolean).join(" ")||a.email||"Asesor",g=Math.max(1,Number(a.meta)||Number(a.meta_mensual)||50),made=adminMonthlySales.filter(s=>s.asesor_id===a.id).length,p=Math.min(100,Math.round(made/g*100));return `<tr><td>${escapeHTML(n)}</td><td>${made}</td><td>${g}</td><td>${p}%</td></tr>`;}).join("")||'<tr><td colspan="4" class="print-empty-row">No hay asesores activos.</td></tr>';
@@ -855,7 +861,7 @@
       const filtered=getFilteredAdminSales();
       const total=filtered.length, ventas=filtered.filter(s=>s.tipo_operacion==="Venta").length, recon=filtered.filter(s=>s.tipo_operacion==="Reconexión").length, otros=filtered.filter(s=>s.tipo_operacion==="Otros").length, real=filtered.filter(s=>s.estado_instalacion==="REALIZADA").length, pending=filtered.filter(s=>s.estado_instalacion==="PENDIENTE").length, cancel=filtered.filter(s=>s.estado_instalacion==="CANCELADA").length;
       const pct=n=>total?Math.round(n/total*100):0;
-      const advisorMap={};filtered.forEach(s=>{const a=s.perfiles||{},n=[a.nombre,a.apellido].filter(Boolean).join(" ")||"Sin asesor";if(!advisorMap[n])advisorMap[n]={ventas:0,meta:Math.max(1,Number(a.meta_mensual)||50)};if(isGoalOperation(s))advisorMap[n].ventas++;});
+      const advisorMap={};filtered.forEach(s=>{const a=s.perfiles||{},n=[a.nombre,a.apellido].filter(Boolean).join(" ")||"Sin asesor";if(!advisorMap[n])advisorMap[n]={ventas:0,recon:0,meta:Math.max(1,Number(a.meta_mensual)||50)};if(s.tipo_operacion==="Venta")advisorMap[n].ventas++;else if(s.tipo_operacion==="Reconexión")advisorMap[n].recon++;});
       const detail=filtered.map(s=>{const a=s.perfiles||{};return {"Asesor":[a.nombre,a.apellido].filter(Boolean).join(" ")||"—","Cliente / código":s.codigo_cliente||"—","Código servicio":s.codigo_servicio||"—","Operación":s.tipo_operacion||"—","Servicio":[s.servicio,s.descripcion_servicio].filter(Boolean).join(" · "),"Zona":s.zona||"—","Fecha":s.fecha_venta||"","Estado":statusLabel(s.estado_instalacion)}});
       const ws=window.XLSX.utils.json_to_sheet(detail.length?detail:[{"Asesor":"","Cliente / código":"","Código servicio":"","Operación":"","Servicio":"","Zona":"","Fecha":"","Estado":""}],{header:["Asesor","Cliente / código","Código servicio","Operación","Servicio","Zona","Fecha","Estado"]});
       ws["!cols"]=[{wch:25},{wch:20},{wch:20},{wch:16},{wch:48},{wch:24},{wch:14},{wch:16}];
@@ -870,10 +876,10 @@
       const opsRow=summary.length;push(["Venta",ventas,pct(ventas)]);push(["Reconexión",recon,pct(recon)]);push(["Otros",otros,pct(otros)]);push([]);
       push(["GRÁFICO · ESTADO"]);push(["Estado","Cantidad","%"]);
       const estadoRow=summary.length;push(["Realizada",real,pct(real)]);push(["Pendiente",pending,pct(pending)]);push(["Cancelada",cancel,pct(cancel)]);push([]);
-      push(["GRÁFICO · CUMPLIMIENTO DE META POR ASESOR (VENTAS + RECONEXIONES)"]);push(["Asesor","Operaciones","Meta","% cumplimiento"]);
+      push(["GRÁFICO · CUMPLIMIENTO DE META POR ASESOR (SOLO VENTAS)"]);push(["Asesor","Ventas","Meta","% cumplimiento","Reconexiones (no cuentan para la meta)"]);
       const advisorRow=summary.length;
       const advisorEntries=Object.entries(advisorMap).sort((a,b)=>b[1].ventas-a[1].ventas);
-      if(advisorEntries.length)advisorEntries.forEach(([n,d])=>{const gp=Math.min(100,Math.round(d.ventas/d.meta*100));push([n,d.ventas,d.meta,gp]);});else push(["Sin datos","","",""]);
+      if(advisorEntries.length)advisorEntries.forEach(([n,d])=>{const gp=Math.min(100,Math.round(d.ventas/d.meta*100));push([n,d.ventas,d.meta,gp,d.recon]);});else push(["Sin datos","","","",""]);
       const advisorCount=advisorEntries.length||1;
 
       const wr=window.XLSX.utils.aoa_to_sheet(summary);wr["!cols"]=[{wch:34},{wch:16},{wch:16},{wch:18}];
