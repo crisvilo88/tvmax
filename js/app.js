@@ -125,12 +125,12 @@
     lastDashboardRefresh=now;
     try{
       if(currentProfile.rol==="administrador"){
-        cacheInvalidate(`dashboard:tvmax:v5:${currentUser.id}:`);
-        cacheInvalidate(`admin-goal-sales:tvmax:${monthStartISO()}`);
+        cacheInvalidate(`dashboard:tvmax:v6:${currentUser.id}:`);
+        cacheInvalidate(`admin-goal-installs:tvmax:${monthStartISO()}`);
         const dashboard=await loadMonthlyDashboard(true);
         if(dashboard){adminGoalAdvisors=Array.isArray(dashboard.asesores)?dashboard.asesores:adminGoalAdvisors;updateAdminDashboard(dashboard);}
       }else if(currentProfile.rol==="asesor"){
-        cacheInvalidate(`dashboard:tvmax:v5:${currentUser.id}:`);
+        cacheInvalidate(`dashboard:tvmax:v6:${currentUser.id}:`);
         const dashboard=await loadMonthlyDashboard(true);
         if(dashboard)updateAdvisorDashboard(dashboard.asesores?.find(a=>a.id===currentUser.id));
       }
@@ -143,8 +143,8 @@
     id("filtroAsesor").addEventListener("input", renderAdvisorTable);
     ["filtroAsesorDesde","filtroAsesorHasta"].forEach(x=>{id(x)?.addEventListener("change",()=>{loadAdvisorSalesForFilters(true).catch(e=>{console.error("No fue posible cargar el periodo del asesor",e);showToast("No fue posible cargar las operaciones del periodo.",true);});});});
     id("filtro-asesor-usuarios")?.addEventListener("input", debounce(searchAdvisor,350));
-    id("btn-refresh-dashboard")?.addEventListener("click", async()=>{cacheInvalidate(`dashboard:tvmax:v5:${currentUser?.id||""}:`);cacheInvalidate(`sales:tvmax:admin:${getTodayISO()}`);cacheInvalidate(`admin-goal-sales:tvmax:${monthStartISO()}`);adminReportSales=null;await loadAdminData();lastDashboardRefresh=Date.now();showToast("Dashboard actualizado.");});
-    id("btn-refresh-advisor-dashboard")?.addEventListener("click", async()=>{cacheInvalidate(`dashboard:tvmax:v5:${currentUser?.id||""}:`);cacheInvalidate(`sales:tvmax:${currentUser?.id||""}:${getTodayISO()}`);cacheInvalidate(`surveys:tvmax:${currentUser?.id||""}:${getTodayISO()}`);await loadAdvisorData();lastDashboardRefresh=Date.now();showToast("Resumen mensual actualizado.");});
+    id("btn-refresh-dashboard")?.addEventListener("click", async()=>{cacheInvalidate(`dashboard:tvmax:v6:${currentUser?.id||""}:`);cacheInvalidate(`sales:tvmax:admin:${getTodayISO()}`);cacheInvalidate(`admin-goal-installs:tvmax:${monthStartISO()}`);adminReportSales=null;await loadAdminData();lastDashboardRefresh=Date.now();showToast("Dashboard actualizado.");});
+    id("btn-refresh-advisor-dashboard")?.addEventListener("click", async()=>{cacheInvalidate(`dashboard:tvmax:v6:${currentUser?.id||""}:`);cacheInvalidate(`sales:tvmax:${currentUser?.id||""}:${getTodayISO()}`);cacheInvalidate(`surveys:tvmax:${currentUser?.id||""}:${getTodayISO()}`);await loadAdvisorData();lastDashboardRefresh=Date.now();showToast("Resumen mensual actualizado.");});
     ["filtroAdminTexto","filtroEstadoAdmin","filtroTipoAdmin","filtroServicioAdmin","filtroZonaAdmin"].forEach(x => { id(x).addEventListener("input", renderAdmin); id(x).addEventListener("change", renderAdmin); });
     ["filtroDesdeAdmin","filtroHastaAdmin"].forEach(x => { id(x).addEventListener("change",()=>{loadAdminSalesForFilters(true).catch(e=>{console.warn("No fue posible cargar el periodo de ventas",e);renderAdmin();});}); });
     id("btn-clear-filters").addEventListener("click", clearAdminFilters); id("btn-preview-report").addEventListener("click", async()=>{await loadAdminSalesForFilters(false);previewReport();}); id("btn-close-report-preview").addEventListener("click", closeReportPreview); id("btn-print-report").addEventListener("click", async()=>{await loadAdminSalesForFilters(false);printReport();}); id("btn-pdf-report").addEventListener("click", async()=>{await loadAdminSalesForFilters(false);downloadPDF(buildReportSummaryHTML);}); id("btn-excel-report").addEventListener("click", async()=>{await loadAdminSalesForFilters(false);downloadExcel();});
@@ -202,7 +202,7 @@
   async function loadConfig(){const key="config:tvmax";const cached=cacheGet(key);if(cached){config=cached;applyTheme();renderConfig();return;}const {data,error}=await sbClient.from("configuracion").select("color_principal,logo_url").eq("id",1).maybeSingle();if(!error&&data){config=data;cacheSet(key,config);if(currentProfile?.rol==="administrador"&&String(data.logo_url||"").startsWith("data:image/"))migrateLegacyLogo(data.logo_url);}applyTheme();renderConfig();}
   async function migrateLegacyLogo(dataUrl){try{const blob=await fetch(dataUrl).then(r=>r.blob());const ext=(blob.type.split("/")[1]||"png").replace("jpeg","jpg");const path=`tvmax/logo-${Date.now()}.${ext}`;const up=await sbClient.storage.from("app-assets").upload(path,blob,{cacheControl:"31536000",upsert:false,contentType:blob.type});if(up.error)return;const url=sbClient.storage.from("app-assets").getPublicUrl(path).data.publicUrl;const r=await sbClient.from("configuracion").update({logo_url:url,updated_by:currentUser.id}).eq("id",1);if(!r.error){config.logo_url=url;cacheSet("config:tvmax",config);renderConfig();}}catch(e){console.warn("No fue posible migrar el logo anterior al Storage",e);}}
   async function loadMonthlyDashboard(force=false){
-    const key=`dashboard:tvmax:v5:${currentUser.id}:${monthStartISO()}`;
+    const key=`dashboard:tvmax:v6:${currentUser.id}:${monthStartISO()}`;
     if(force)cacheInvalidate(key);else{const cached=cacheGet(key);if(cached!==null)return cached;}
     // Pendientes = SOLO ventas con instalación PENDIENTE del mes (sin reconexiones ni otros); ya lo calcula el RPC.
     const {data,error}=await sbClient.rpc("dashboard_tvmax_mensual",{p_month_start:monthStartISO()});
@@ -211,15 +211,15 @@
     const inicio=monthStartISO();
     const fin=new Date(); fin.setMonth(fin.getMonth()+1); fin.setDate(0);
     const finISO=`${fin.getFullYear()}-${String(fin.getMonth()+1).padStart(2,'0')}-${String(fin.getDate()).padStart(2,'0')}`;
-    const [vr,ar]=await Promise.all([
-      sbClient.from("ventas").select("tipo_operacion,estado_instalacion,servicio,asesor_id",{count:"exact"}).gte("fecha_venta",inicio).lte("fecha_venta",finISO),
+    const [vr,ir,ar]=await Promise.all([
+      sbClient.from("ventas").select("id,tipo_operacion,estado_instalacion,servicio,asesor_id,fecha_venta,fecha_instalacion",{count:"exact"}).gte("fecha_venta",inicio).lt("fecha_venta",nextMonthStartISO()),
+      sbClient.from("ventas").select("id,asesor_id").eq("tipo_operacion","Venta").eq("estado_instalacion","REALIZADA").gte("fecha_instalacion",inicio).lt("fecha_instalacion",nextMonthStartISO()),
       sbClient.from("perfiles").select("id,nombre,apellido,email,meta_mensual").eq("rol","asesor").neq("activo",false)
     ]);
     if(vr.error){console.error(vr.error);return null;}
-    const rows=vr.data||[], profiles=ar.data||[];
+    if(ir.error){console.error(ir.error);return null;}
+    const rows=vr.data||[], installs=ir.data||[], profiles=ar.data||[];
     const isV=x=>x.tipo_operacion==="Venta",isR=x=>x.tipo_operacion==="Reconexión",isO=x=>x.tipo_operacion==="Otros";
-    // Distribución de servicios: Internet/TV/Combo SOLO cuentan ventas (tipo_operacion="Venta") por su campo servicio.
-    // Reconexiones y Otros se cuentan aparte por tipo_operacion, sin importar el servicio.
     const services={
       "Internet": rows.filter(x=>isV(x)&&x.servicio==="Internet").length,
       "TV": rows.filter(x=>isV(x)&&x.servicio==="TV").length,
@@ -227,7 +227,7 @@
       "Reconexión": rows.filter(isR).length,
       "Otros": rows.filter(isO).length
     };
-    const result={total:rows.length,ventas:rows.filter(isV).length,reconexiones:rows.filter(isR).length,pendientes:rows.filter(x=>isV(x)&&x.estado_instalacion==="PENDIENTE").length,realizadas:rows.filter(x=>x.estado_instalacion==="REALIZADA").length,canceladas:rows.filter(x=>x.estado_instalacion==="CANCELADA").length,servicios:services,asesores:profiles.map(a=>{const mine=rows.filter(x=>x.asesor_id===a.id);return {id:a.id,nombre:a.nombre,apellido:a.apellido,email:a.email,meta:Number(a.meta_mensual)||50,total:mine.length,ventas:mine.filter(isV).length,reconexiones:mine.filter(isR).length,pendientes:mine.filter(x=>isV(x)&&x.estado_instalacion==="PENDIENTE").length,realizadas_estado:mine.filter(x=>isV(x)&&x.estado_instalacion==="REALIZADA").length,realizadas:mine.filter(x=>isV(x)||isR(x)).length};})};
+    const result={total:rows.length,ventas:rows.filter(isV).length,reconexiones:rows.filter(isR).length,pendientes:rows.filter(x=>isV(x)&&x.estado_instalacion==="PENDIENTE").length,realizadas:installs.length,canceladas:rows.filter(x=>isV(x)&&x.estado_instalacion==="CANCELADA").length,servicios:services,asesores:profiles.map(a=>{const mine=rows.filter(x=>x.asesor_id===a.id),mineInstalls=installs.filter(x=>x.asesor_id===a.id);return {id:a.id,nombre:a.nombre,apellido:a.apellido,email:a.email,meta:Number(a.meta_mensual)||50,total:mine.length,ventas:mine.filter(isV).length,reconexiones:mine.filter(isR).length,pendientes:mine.filter(x=>isV(x)&&x.estado_instalacion==="PENDIENTE").length,realizadas_estado:mineInstalls.length,realizadas:mineInstalls.length};})};
     cacheSet(key,result);return result;
   }
   async function loadTodaySalesData(){const today=getTodayISO(),uid=currentUser.id;const [sr,qr,dashboard]=await Promise.all([
@@ -246,7 +246,7 @@
       sbClient.from("perfiles").select("id",{count:"exact",head:true}).eq("rol","asesor"),
       cachedQuery(`surveys:tvmax:admin:${today}`,async()=>{const r=await sbClient.from("encuestas").select("id,asesor_id,codigo_nombre_usuario,q2_servicio,observacion_q2,q3_tecnica,observacion_q3,q4_administrativa,observacion_q4,q5_agilidad,observacion_q5,q6_recomendaria,observacion_q6,q7_recomendacion,zona_encuesta,fecha_encuesta,created_at,updated_at,perfiles:asesor_id(id,nombre,apellido,email,zona,activo,rol)").eq("fecha_encuesta",today).order("id",{ascending:false}).limit(10);if(r.error)throw r.error;return r.data||[];}),
       dashboardPromise,
-      cachedQuery(`admin-goal-sales:tvmax:${monthStartISO()}`,async()=>{const r=await sbClient.from("ventas").select("id,asesor_id,tipo_operacion,fecha_venta").eq("tipo_operacion","Venta").gte("fecha_venta",monthStartISO()).lt("fecha_venta",nextMonthStartISO());if(r.error)throw r.error;return r.data||[];})
+      cachedQuery(`admin-goal-installs:tvmax:${monthStartISO()}`,async()=>{const r=await sbClient.from("ventas").select("id,asesor_id,tipo_operacion,estado_instalacion,fecha_instalacion").eq("tipo_operacion","Venta").eq("estado_instalacion","REALIZADA").gte("fecha_instalacion",monthStartISO()).lt("fecha_instalacion",nextMonthStartISO());if(r.error)throw r.error;return r.data||[];})
     ]);
     const sr=results[0].status==="fulfilled"?results[0].value:[];
     const cnt=results[1].status==="fulfilled"?results[1].value:{count:0};
@@ -378,9 +378,9 @@
   function updateAdvisorDashboard(monthlyAdvisor=null){
     updateAdvisorStats(monthlyAdvisor);
     // La meta mensual del asesor cuenta SOLO ventas (igual que la meta del administrador), no reconexiones.
-    const meta=Math.max(1,Number(monthlyAdvisor?.meta)||Number(currentProfile?.meta_mensual)||50),made=Number(monthlyAdvisor?.ventas)||0,pct=Math.min(100,Math.round(made/meta*100));
+    const meta=Math.max(1,Number(monthlyAdvisor?.meta)||Number(currentProfile?.meta_mensual)||50),made=Number(monthlyAdvisor?.realizadas)||0,pct=Math.min(100,Math.round(made/meta*100));
     setText("asesor-goal-title",`${made} / ${meta} ventas`);
-    setText("asesor-goal-detail",`Avance mensual · ${new Date().toLocaleDateString("es-CO",{month:"long",year:"numeric"})}. Las tarjetas muestran el acumulado del mes.`);
+    setText("asesor-goal-detail",`Avance por instalaciones completadas · ${new Date().toLocaleDateString("es-CO",{month:"long",year:"numeric"})}.`);
     if(id("asesor-goal-bar"))id("asesor-goal-bar").style.width=`${pct}%`;setText("asesor-goal-percent",`${pct}%`);
   }
 
@@ -605,7 +605,7 @@
     const dashboardAdvisors=Array.isArray(d.asesores)?d.asesores:adminGoalAdvisors;
     setText("dash-total",total);setText("dash-ventas",ventas);setText("dash-reconexiones",recon);setText("dash-pendientes",p);setText("dash-realizadas",r);setText("dash-canceladas",c);
     // IMPORTANTE: la meta del administrador cuenta SOLO ventas.
-    const made=getAdminMonthlySales().length||ventas,goal=getAdminMonthlyGoal(),pct=goal?Math.min(100,Math.round(made/goal*100)):0;
+    const made=getAdminMonthlySales().length,goal=getAdminMonthlyGoal(),pct=goal?Math.min(100,Math.round(made/goal*100)):0;
     setText("dash-admin-goal-title",`${made} / ${goal} ventas`);
     setText("dash-admin-goal-period",`Meta total de ${dashboardAdvisors.length} asesor${dashboardAdvisors.length===1?"":"es"} activos para ${getMonthLabel()}. El avance individual cuenta SOLO ventas (las reconexiones se muestran aparte, abajo).`);
     if(id("dash-admin-goal-bar"))id("dash-admin-goal-bar").style.width=`${pct}%`;
@@ -614,12 +614,12 @@
     // IMPORTANTE: el cumplimiento de meta de cada asesor cuenta SOLO ventas (a.ventas), nunca a.realizadas
     // (que mezcla ventas+reconexiones) porque la meta mensual se mide en ventas, no en operaciones totales.
     if(id("dash-admin-goal-breakdown"))id("dash-admin-goal-breakdown").innerHTML=dashboardAdvisors.filter(a=>a.activo!==false).map(a=>{
-      const n=[a.nombre,a.apellido].filter(Boolean).join(" ")||a.email||"Asesor",g=Math.max(1,Number(a.meta)||50),count=Number(a.ventas)||0,ap=Math.min(100,Math.round(count/g*100));
+      const n=[a.nombre,a.apellido].filter(Boolean).join(" ")||a.email||"Asesor",g=Math.max(1,Number(a.meta)||50),count=Number(a.realizadas)||0,ap=Math.min(100,Math.round(count/g*100));
       return `<div class="admin-goal-breakdown-row"><span>${escapeHTML(n)}</span><strong>${count}/${g}</strong><small>${ap}%</small></div>`;
     }).join("")||'<span class="muted">No hay asesores activos.</span>';
     id("dash-goals-list").innerHTML=dashboardAdvisors.filter(a=>a.activo!==false).map(a=>{
-      const n=[a.nombre,a.apellido].filter(Boolean).join(" ")||a.email,count=Number(a.ventas)||0,g=Math.max(1,Number(a.meta)||50),ap=Math.min(100,Math.round(count/g*100)),recon=Number(a.reconexiones)||0;
-      return `<div class="goal-list-row"><div><strong>${escapeHTML(n)}</strong><small>${count} / ${g} ventas${recon?` · ${recon} reconexión${recon===1?"":"es"}`:""}</small></div><div class="mini-progress"><span style="width:${ap}%"></span></div><b>${ap}%</b></div>`;
+      const n=[a.nombre,a.apellido].filter(Boolean).join(" ")||a.email,count=Number(a.realizadas)||0,g=Math.max(1,Number(a.meta)||50),ap=Math.min(100,Math.round(count/g*100)),recon=Number(a.reconexiones)||0;
+      return `<div class="goal-list-row"><div><strong>${escapeHTML(n)}</strong><small>${count} / ${g} instalaciones${recon?` · ${recon} reconexión${recon===1?"":"es"}`:""}</small></div><div class="mini-progress"><span style="width:${ap}%"></span></div><b>${ap}%</b></div>`;
     }).join("")||'<p class="muted">No hay asesores activos.</p>';
     const serviceCounts=d.servicios&&typeof d.servicios==="object"?d.servicios:{};const counts=SERVICES.map(s=>({s,n:Number(serviceCounts[s])||0}));const max=Math.max(1,...counts.map(x=>x.n));id("dash-services-list").innerHTML=counts.map(x=>`<div class="mini-bar-row"><span>${x.s}</span><div><i style="width:${x.n/max*100}%"></i></div><strong>${x.n}</strong></div>`).join("");
     // Gráfico aparte de reconexiones por asesor (no cuentan para la meta, pero se deben poder ver).
