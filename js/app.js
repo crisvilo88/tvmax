@@ -147,7 +147,7 @@
     id("btn-refresh-advisor-dashboard")?.addEventListener("click", async()=>{cacheInvalidate(`dashboard:tvmax:v6:${currentUser?.id||""}:`);cacheInvalidate(`sales:tvmax:${currentUser?.id||""}:${getTodayISO()}`);cacheInvalidate(`surveys:tvmax:${currentUser?.id||""}:${getTodayISO()}`);await loadAdvisorData();lastDashboardRefresh=Date.now();showToast("Resumen mensual actualizado.");});
     ["filtroAdminTexto","filtroEstadoAdmin","filtroTipoAdmin","filtroServicioAdmin","filtroZonaAdmin"].forEach(x => { id(x).addEventListener("input", renderAdmin); id(x).addEventListener("change", renderAdmin); });
     ["filtroDesdeAdmin","filtroHastaAdmin"].forEach(x => { id(x).addEventListener("change",()=>{loadAdminSalesForFilters(true).catch(e=>{console.warn("No fue posible cargar el periodo de ventas",e);renderAdmin();});}); });
-    id("btn-clear-filters").addEventListener("click", clearAdminFilters); id("btn-preview-report").addEventListener("click", async()=>{await loadAdminSalesForFilters(false);previewReport();}); id("btn-close-report-preview").addEventListener("click", closeReportPreview); id("btn-print-report").addEventListener("click", async()=>{await loadAdminSalesForFilters(false);printReport();}); id("btn-pdf-report").addEventListener("click", async()=>{await loadAdminSalesForFilters(false);downloadPDF(buildReportSummaryHTML);}); id("btn-excel-report").addEventListener("click", async()=>{await loadAdminSalesForFilters(false);downloadExcel();});
+    id("btn-clear-filters").addEventListener("click", clearAdminFilters); id("btn-preview-report").addEventListener("click", async()=>{try{await loadAdminSalesForFilters(true);previewReport();}catch(e){console.error("Error al preparar vista previa",e);showToast("No se pudo generar la vista previa. Revisa los filtros e inténtalo de nuevo.",true);}}); id("btn-close-report-preview").addEventListener("click", closeReportPreview); id("btn-print-report").addEventListener("click", async()=>{await loadAdminSalesForFilters(false);printReport();}); id("btn-pdf-report").addEventListener("click", async()=>{await loadAdminSalesForFilters(false);downloadPDF(buildReportSummaryHTML);}); id("btn-excel-report").addEventListener("click", async()=>{await loadAdminSalesForFilters(false);downloadExcel();});
     id("filtroAsesorAdminBtn").addEventListener("click",(e)=>{e.stopPropagation();id("filtroAsesorAdminPanel").classList.toggle("hidden");});
     id("filtroAsesorAdminAll").addEventListener("click",()=>{selectedAdvisorIds=advisors.map(a=>a.id);onAdminAdvisorSelectionChange();});
     id("filtroAsesorAdminClear").addEventListener("click",()=>{selectedAdvisorIds=[];onAdminAdvisorSelectionChange();});
@@ -390,7 +390,7 @@
     const names=selectedAdvisorIds.map(id=>{const a=advisors.find(x=>x.id===id);return a?([a.nombre,a.apellido].filter(Boolean).join(" ")||a.email):null;}).filter(Boolean);
     return `${names.length} asesor${names.length===1?"":"es"} seleccionado${names.length===1?"":"s"}: ${names.join(", ")}`;
   }
-  function getFilteredAdminSales(){const text=value("filtroAdminTexto").toLowerCase(),state=id("filtroEstadoAdmin").value,type=id("filtroTipoAdmin").value,service=id("filtroServicioAdmin").value,zone=id("filtroZonaAdmin").value,from=id("filtroDesdeAdmin").value,to=id("filtroHastaAdmin").value;return (adminReportSales||sales).filter(s=>{const a=s.perfiles||{},search=[a.nombre,a.apellido,a.email,s.tipo_operacion,s.codigo_cliente,s.servicio,s.descripcion_servicio,s.zona,s.fecha_venta].join(" ").toLowerCase();return(!text||search.includes(text))&&(!selectedAdvisorIds.length||selectedAdvisorIds.includes(s.asesor_id))&&(!state||s.estado_instalacion===state)&&(!type||s.tipo_operacion===type)&&(!service||s.servicio===service)&&(!zone||s.zona===zone)&&(!from||s.fecha_venta>=from)&&(!to||s.fecha_venta<=to);});}
+  function getFilteredAdminSales(){const text=value("filtroAdminTexto").toLowerCase(),state=id("filtroEstadoAdmin").value,type=id("filtroTipoAdmin").value,service=id("filtroServicioAdmin").value,zone=id("filtroZonaAdmin").value,from=id("filtroDesdeAdmin").value,to=id("filtroHastaAdmin").value;return (adminReportSales||sales).filter(s=>{const a=s.perfiles||{},search=[a.nombre,a.apellido,a.email,s.tipo_operacion,s.codigo_cliente,s.servicio,s.descripcion_servicio,s.zona,s.fecha_venta].join(" ").toLowerCase();const dateForPeriod=s.estado_instalacion==="REALIZADA"?(s.fecha_instalacion||s.fecha_venta):s.fecha_venta;return(!text||search.includes(text))&&(!selectedAdvisorIds.length||selectedAdvisorIds.includes(s.asesor_id))&&(!state||s.estado_instalacion===state)&&(!type||s.tipo_operacion===type)&&(!service||s.servicio===service)&&(!zone||s.zona===zone)&&(!from||dateForPeriod>=from)&&(!to||dateForPeriod<=to);});}
   function populateAdminFilters(){
     selectedAdvisorIds=selectedAdvisorIds.filter(id=>advisors.some(a=>a.id===id));
     const opts=id("filtroAsesorAdminOptions");
@@ -633,10 +633,18 @@
     if(!from&&!to&&!advIds.length){adminReportSales=null;renderAdmin();return;}
     const key=`sales-report:tvmax:${from||"all"}:${to||"all"}:${advIds.slice().sort().join(",")}`;
     if(!force&&adminReportSales?.__key===key)return;
-    let q=sbClient.from("ventas").select("id,asesor_id,tipo_operacion,codigo_cliente,codigo_servicio,descripcion_servicio,zona,fecha_venta,estado_instalacion,fecha_instalacion,created_at,updated_at,servicio,perfiles:asesor_id(id,nombre,apellido,zona,email,meta_mensual,activo)").order("fecha_venta",{ascending:false}).order("id",{ascending:false});
-    if(advIds.length)q=q.in("asesor_id",advIds);
-    if(from)q=q.gte("fecha_venta",from); if(to)q=q.lte("fecha_venta",to);
-    const r=await q; if(r.error)throw r.error; adminReportSales=r.data||[];
+    const select="id,asesor_id,tipo_operacion,codigo_cliente,codigo_servicio,descripcion_servicio,zona,fecha_venta,estado_instalacion,fecha_instalacion,created_at,updated_at,servicio,perfiles:asesor_id(id,nombre,apellido,zona,email,meta_mensual,activo)";
+    const buildQuery=async(dateField)=>{
+      let q=sbClient.from("ventas").select(select).order("fecha_venta",{ascending:false}).order("id",{ascending:false});
+      if(advIds.length)q=q.in("asesor_id",advIds);
+      if(from)q=q.gte(dateField,from); if(to)q=q.lte(dateField,to);
+      const r=await q;if(r.error)throw r.error;return r.data||[];
+    };
+    // Un reporte por período debe incluir ventas registradas en el rango y también
+    // ventas antiguas cuya instalación REALIZADA ocurrió dentro del rango.
+    const [bySale,byInstall]=await Promise.all([buildQuery("fecha_venta"),buildQuery("fecha_instalacion")]);
+    const merged=new Map();[...bySale,...byInstall].forEach(row=>merged.set(String(row.id),row));
+    adminReportSales=[...merged.values()].sort((a,b)=>String(b.fecha_venta||"").localeCompare(String(a.fecha_venta||""))||Number(b.id)-Number(a.id));
     adminReportSales.__key=key; renderAdmin();
   }
   async function loadAdvisorSalesForFilters(force=false){
