@@ -195,7 +195,7 @@
         <div class="card stat-card"><div class="stat-icon">V</div><div><h3>Ventas</h3><p id="dash-ventas">0</p></div></div>
         <div class="card stat-card"><div class="stat-icon">R</div><div><h3>Reconexiones</h3><p id="dash-reconexiones">0</p></div></div>
         <div class="card stat-card"><div class="stat-icon">!</div><div><h3>Pendientes</h3><p id="dash-pendientes">0</p></div></div>
-        <div class="card stat-card"><div class="stat-icon">✓</div><div><h3>Realizadas</h3><p id="dash-realizadas">0</p></div></div>
+        <div class="card stat-card"><div class="stat-icon">✓</div><div><h3>Instaladas</h3><p id="dash-realizadas">0</p></div></div>
         <div class="card stat-card"><div class="stat-icon">✕</div><div><h3>Canceladas</h3><p id="dash-canceladas">0</p></div></div>
       </div>
       <div class="dashboard-grid">
@@ -215,7 +215,7 @@
 
     <section id="vista-admin" class="view hidden">
       <div class="page-heading"><div><span class="eyebrow">OPERACIONES</span><h2>Gestión de instalaciones</h2><p>Actualiza el estado de las operaciones y administra el seguimiento.</p></div></div>
-      <div class="card filters-card"><div class="card-heading"><div><span class="section-kicker">REPORTES</span><h3>Filtros de consulta</h3></div><div class="filter-actions"><button id="btn-clear-filters" class="btn-secondary" type="button">Limpiar filtros</button><button id="btn-preview-report" class="btn-secondary" type="button">👁 Vista previa</button><button id="btn-print-report" class="btn-primary" type="button">🖨 Imprimir</button><button id="btn-pdf-report" class="btn-primary" type="button">📄 Descargar PDF</button><button id="btn-excel-report" class="btn-secondary" type="button">📊 Descargar Excel</button></div></div><div class="filters-grid">
+      <div class="card filters-card"><div class="card-heading"><div><span class="section-kicker">REPORTES</span><h3>Informes</h3><p class="muted">Consulta ventas del mes o instalaciones completadas durante el mes.</p></div><div class="filter-actions"><button id="btn-clear-filters" class="btn-secondary" type="button">Limpiar filtros</button><button id="btn-preview-report" class="btn-secondary" type="button">👁 Vista previa</button><button id="btn-print-report" class="btn-primary" type="button">🖨 Imprimir</button><button id="btn-pdf-report" class="btn-primary" type="button">📄 Descargar PDF</button><button id="btn-excel-report" class="btn-secondary" type="button">📊 Descargar Excel</button></div></div><div class="report-mode-switch" role="group" aria-label="Tipo de informe"><button id="btn-report-sales" class="btn-primary" type="button" aria-pressed="true">Informe de ventas</button><button id="btn-report-installations" class="btn-secondary" type="button" aria-pressed="false">Informe de instalaciones</button></div><div class="filters-grid">
         <div class="form-group"><label for="filtroAdminTexto">Buscar</label><input id="filtroAdminTexto" type="search" placeholder="Cliente, servicio, descripción..."></div>
         <div class="form-group"><label>Asesor</label>
           <div class="multi-select" id="filtroAsesorAdminWrap">
@@ -235,7 +235,7 @@
         <div class="form-group"><label for="filtroZonaAdmin">Zona</label><select id="filtroZonaAdmin"><option value="">Todas las zonas</option></select></div>
         <div class="form-group"><label for="filtroDesdeAdmin">Fecha desde</label><input id="filtroDesdeAdmin" type="date"></div><div class="form-group"><label for="filtroHastaAdmin">Fecha hasta</label><input id="filtroHastaAdmin" type="date"></div>
       </div></div>
-      <div class="card table-card"><div class="card-heading table-heading"><div><span class="section-kicker">ADMINISTRACIÓN</span><h3>Operaciones registradas</h3></div><span id="admin-result-count" class="result-count">0 resultados</span></div><div class="table-wrapper"><table class="admin-operation-table"><thead><tr><th>ID</th><th>Asesor</th><th>Operación</th><th>Cliente</th><th>Servicio</th><th>Descripción</th><th>Zona</th><th>Fecha</th><th>Estado</th><th>Fecha instalación</th><th>Acciones</th></tr></thead><tbody id="tabla-admin"></tbody></table></div></div>
+      <div class="card table-card"><div class="card-heading table-heading"><div><span class="section-kicker">ADMINISTRACIÓN</span><h3 id="admin-report-table-title">Ventas y reconexiones del período</h3></div><span id="admin-result-count" class="result-count">0 resultados</span></div><div class="table-wrapper"><table class="admin-operation-table"><thead><tr><th>ID</th><th>Asesor</th><th>Operación</th><th>Cliente</th><th>Servicio</th><th>Descripción</th><th>Zona</th><th>Fecha</th><th>Estado</th><th>Fecha instalación</th><th>Acciones</th></tr></thead><tbody id="tabla-admin"></tbody></table></div></div>
     </section>
 
 
