@@ -368,7 +368,7 @@
   function updateSessionHeader(){const name=[currentProfile?.nombre,currentProfile?.apellido].filter(Boolean).join(" ")||"Usuario", role=currentProfile?.rol==="administrador"?"Administrador":"Asesor";id("user-name").textContent=name;id("user-role").textContent=role;id("user-avatar").textContent=name.charAt(0).toUpperCase();id("sidebar-user-name").textContent=name;id("sidebar-user-role").textContent=role;id("session-area").classList.remove("hidden");id("btn-menu").classList.remove("hidden");id("sidebar").classList.remove("hidden");if(id("survey-mode-description"))id("survey-mode-description").textContent=currentProfile?.rol==="administrador"?"Diligencia una encuesta de satisfacción como mecanismo de control y seguimiento de la atención al usuario.":"Diligencia la encuesta utilizando exactamente las preguntas del formulario de satisfacción de Grupo TV Max.";}
   function applyAdvisorProfile(){const zona=currentProfile?.zona||"";const zSel=id("zona");if(zSel&&!zSel.value&&OFFICES.includes(String(zona).toUpperCase()))zSel.value=String(zona).toUpperCase();id("asesor-zone-badge").textContent=`Zona: ${zona||"Sin asignar"}`;id("asesor-welcome").textContent=`Registra operaciones y consulta tu avance. Zona asignada: ${zona||"sin asignar"}. Puedes elegir la oficina de cada venta.`;}
 
-  function getFilteredAdvisorSales(){const source=advisorReportSales||sales,filtro=value("filtroAsesor").toLowerCase(),from=value("filtroAsesorDesde"),to=value("filtroAsesorHasta");return source.filter(s=>{const search=[s.tipo_operacion,s.codigo_cliente,s.servicio,s.descripcion_servicio,s.zona,s.fecha_venta,s.estado_instalacion].join(" ").toLowerCase();return(!filtro||search.includes(filtro))&&(!from||s.fecha_venta>=from)&&(!to||s.fecha_venta<=to);});}
+  function getFilteredAdvisorSales(){const source=advisorReportSales||sales,filtro=value("filtroAsesor").toLowerCase(),from=value("filtroAsesorDesde"),to=value("filtroAsesorHasta");return source.filter(s=>{const search=[s.tipo_operacion,s.codigo_cliente,s.servicio,s.descripcion_servicio,s.zona,s.fecha_venta,s.estado_instalacion].join(" ").toLowerCase();const dateForPeriod=s.estado_instalacion==="REALIZADA"?(s.fecha_instalacion||s.fecha_venta):s.fecha_venta;return(!filtro||search.includes(filtro))&&(!from||dateForPeriod>=from)&&(!to||dateForPeriod<=to);});}
   function renderAdvisorTable(){const tabla=id("tabla-asesor"),filtered=getFilteredAdvisorSales();tabla.innerHTML=filtered.length?filtered.map(s=>`<tr><td>#${s.id}</td><td>${operationBadge(s.tipo_operacion)}</td><td>${escapeHTML(s.codigo_cliente)}</td><td>${serviceBadge(s.servicio)}</td><td>${escapeHTML(s.descripcion_servicio)}</td><td>${escapeHTML(s.zona)}</td><td>${formatDate(s.fecha_venta)}</td><td>${installationStatus(s.estado_instalacion)}</td><td>${formatDate(s.fecha_instalacion)}</td></tr>`).join(""):`<tr class="empty-row"><td colspan="9">${sales.length?"No se encontraron operaciones.":"No hay operaciones registradas."}</td></tr>`;}
   function updateAdvisorStats(monthlyAdvisor=null){
     const m=monthlyAdvisor||{};
@@ -653,10 +653,11 @@
     if(!from&&!to){advisorReportSales=null;renderAdvisorTable();return;}
     const key=`sales-advisor-report:tvmax:${currentUser.id}:${from||"all"}:${to||"all"}`;
     if(!force&&advisorReportLoadedKey===key)return;
-    let q=sbClient.from("ventas").select("id,asesor_id,tipo_operacion,codigo_cliente,codigo_servicio,descripcion_servicio,zona,fecha_venta,estado_instalacion,fecha_instalacion,created_at,updated_at,servicio").eq("asesor_id",currentUser.id).order("fecha_venta",{ascending:false}).order("id",{ascending:false});
-    if(from)q=q.gte("fecha_venta",from); if(to)q=q.lte("fecha_venta",to);
-    const r=await q;
-    if(r.error)throw r.error; advisorReportSales=r.data||[];advisorReportLoadedKey=key;renderAdvisorTable();
+    const select="id,asesor_id,tipo_operacion,codigo_cliente,codigo_servicio,descripcion_servicio,zona,fecha_venta,estado_instalacion,fecha_instalacion,created_at,updated_at,servicio";
+    const fetchByDate=async(field)=>{let q=sbClient.from("ventas").select(select).eq("asesor_id",currentUser.id).order("fecha_venta",{ascending:false}).order("id",{ascending:false});if(from)q=q.gte(field,from);if(to)q=q.lte(field,to);const r=await q;if(r.error)throw r.error;return r.data||[];};
+    const [bySale,byInstall]=await Promise.all([fetchByDate("fecha_venta"),fetchByDate("fecha_instalacion")]);
+    const merged=new Map();[...bySale,...byInstall].forEach(row=>merged.set(String(row.id),row));
+    advisorReportSales=[...merged.values()].sort((a,b)=>String(b.fecha_venta||"").localeCompare(String(a.fecha_venta||""))||Number(b.id)-Number(a.id));advisorReportLoadedKey=key;renderAdvisorTable();
   }
 
   async function loadSurveyReportData(force=false){
