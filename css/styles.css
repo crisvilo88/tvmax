@@ -567,3 +567,6 @@ label{color:#263247;}
 .activity-check{display:flex;align-items:center;gap:.55rem;padding:.45rem .55rem;background:#fff;border:1px solid #e0e6f0;border-radius:8px;font-size:.83rem;color:#253149;cursor:pointer;}
 .activity-check input{accent-color:#4f46e5;width:16px;height:16px;flex:0 0 auto;}
 @media(max-width:700px){.activity-bars{grid-template-columns:1fr}.activity-check-grid{grid-template-columns:1fr}.advisor-goal-compact{grid-template-columns:1fr auto}.advisor-goal-compact .goal-progress{grid-column:1/-1;grid-row:2}}
+
+/* Gestión adicional por asesor */
+#vista-otros-gestion .table-wrapper{overflow:auto}#vista-otros-gestion table{min-width:1450px}#otros-datos-select{min-height:112px;padding:10px;border-radius:10px}#otros-datos-help{display:block;margin-top:6px}
