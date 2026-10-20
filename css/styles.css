@@ -592,3 +592,22 @@ label{color:#263247;}
   #conn-current-details > label, #conn-no-current-details > label, #conn-rejection-details > label,
   #conn-eligibility-warning { grid-column: 1; }
 }
+
+
+/* ---- Encuesta de conectividad: formulario fiel al formato de campo ---- */
+.survey-section-title{margin:.6rem 0 0;padding:.55rem .8rem;border-left:4px solid var(--purple-primary);background:#f4f1f8;font-size:.82rem;letter-spacing:.03em;color:var(--purple-primary-dark)}
+.survey-sub-label{display:block;margin:.6rem 0 .3rem;font-weight:700;font-size:.85rem}
+.survey-options-conn{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+.survey-options-list{grid-template-columns:1fr}
+.survey-options-inline{grid-template-columns:repeat(2,minmax(150px,1fr))}
+@media(max-width:700px){.survey-options-conn,.survey-options-inline{grid-template-columns:1fr}}
+
+/* ---- Reportes de encuestas: pregunta / respuesta ---- */
+.print-report-sheet + .print-report-sheet{margin-top:18px;page-break-before:always;break-before:page}
+.qa-table{width:100%;min-width:0 !important;margin:0 0 10px;border-collapse:collapse}
+.qa-table th.qa-head{background:#e7e1f5;color:#302747;font-size:9.5px;line-height:1.35}
+.qa-table td.qa-q{width:56%;font-weight:700;color:#302747;background:#faf9fd}
+.qa-table td.qa-a{width:44%}
+.qa-table td small{display:block;margin-top:2px;color:#77717f}
+.compact-pdf .qa-table th.qa-head{font-size:8px}
+.compact-pdf .qa-table{margin-bottom:7px;font-size:8px}

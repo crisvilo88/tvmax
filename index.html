@@ -81,7 +81,7 @@
       <div class="card survey-selector-card">
         <div class="card-heading"><div><span class="section-kicker">TIPO DE ENCUESTA</span><h3>¿Cuál encuesta deseas realizar?</h3><p class="muted">Selecciona el formulario que vas a diligenciar.</p></div></div>
         <div class="form-actions">
-          <button id="btn-select-survey-satisfaction" class="btn-primary" type="button">Encuesta de satisfacción TV MAX</button>
+          <button id="btn-select-survey-satisfaction" class="btn-primary" type="button">Encuesta de satisfacción </button>
           <button id="btn-select-survey-connectivity" class="btn-secondary" type="button">Encuesta de conectividad</button>
           <button id="btn-open-connectivity-report" class="btn-secondary admin-only" type="button">Reportes de conectividad</button>
         </div>
@@ -204,28 +204,53 @@
         <div class="card form-card survey-card">
           <div class="card-heading"><div><span class="section-kicker">NUEVA ENCUESTA</span><h3>Diagnóstico de conectividad residencial</h3></div><span class="survey-badge">5 preguntas</span></div>
           <form id="connectivity-survey-form" class="survey-form">
-            <div class="form-group"><label for="conn-nombre">Nombre completo *</label><input id="conn-nombre" required maxlength="160"></div>
-            <div class="form-group"><label for="conn-identificacion">Identificación *</label><input id="conn-identificacion" required maxlength="40"></div>
-            <div class="form-group"><label for="conn-celular">Celular *</label><input id="conn-celular" type="tel" required maxlength="30"></div>
-            <div class="form-group"><label for="conn-barrio">Barrio / Sector *</label><input id="conn-barrio" required maxlength="160"></div>
-            <div class="form-group"><label for="conn-estrato">Estrato *</label><select id="conn-estrato" required><option value="">Seleccione...</option><option value="1">1</option><option value="2">2</option></select></div>
-            <div class="form-group form-group-wide"><label>1. ¿Cuenta actualmente su hogar con servicio de Internet fijo residencial? *</label><div class="survey-options survey-options-inline"><label><input type="radio" name="conn-actual" value="SI" required><span>Sí</span></label><label><input type="radio" name="conn-actual" value="NO"><span>No</span></label></div></div>
+            <div class="form-group form-group-wide"><h4 class="survey-section-title">DATOS DE CONTROL DE CAMPO</h4></div>
+            <div class="form-group"><label for="conn-nombre">Nombre:</label><input id="conn-nombre" required maxlength="160"></div>
+            <div class="form-group"><label for="conn-identificacion">Identificación:</label><input id="conn-identificacion" required maxlength="40"></div>
+            <div class="form-group"><label for="conn-celular">Celular:</label><input id="conn-celular" type="tel" required maxlength="30"></div>
+            <div class="form-group"><label for="conn-barrio">Barrio / Sector:</label><input id="conn-barrio" required maxlength="160"></div>
+            <div class="form-group form-group-wide"><label>Estrato:</label><div class="survey-options survey-options-inline"><label><input type="radio" name="conn-estrato" value="1" required><span>1</span></label><label><input type="radio" name="conn-estrato" value="2"><span>2</span></label></div></div>
+
+            <div class="form-group form-group-wide"><h4 class="survey-section-title">SECCIÓN I: DIAGNÓSTICO DE CONECTIVIDAD ACTUAL Y RETROSPECTIVA</h4></div>
+            <div class="form-group form-group-wide"><label>1. ¿Cuenta actualmente su hogar con servicio de Internet fijo residencial?</label><div class="survey-options survey-options-inline"><label><input type="radio" name="conn-actual" value="SI" required><span>SÍ (Pase a pregunta 2)</span></label><label><input type="radio" name="conn-actual" value="NO"><span>NO (Pase a pregunta 3)</span></label></div></div>
             <div id="conn-current-details" class="form-group form-group-wide hidden">
-              <label>2. Empresa y velocidad contratada *</label>
-              <div class="form-group"><label for="conn-operador">Operador</label><select id="conn-operador"><option value="">Seleccione...</option><option>UNE EPM</option><option>Claro</option><option>Quality Net</option><option>Cablenetbag</option><option value="OTRO">Otro</option></select></div>
-              <div class="form-group hidden" id="conn-operador-otro-wrap"><label for="conn-operador-otro">Otro operador</label><input id="conn-operador-otro" maxlength="120"></div>
-              <div class="form-group"><label for="conn-velocidad">Velocidad contratada</label><select id="conn-velocidad"><option value="">Seleccione...</option><option value="&lt;50 Mbps">&lt; 50 Mbps</option><option value="50-100 Mbps">50–100 Mbps</option><option value="100-300 Mbps">100–300 Mbps</option><option value=">300 Mbps">&gt; 300 Mbps</option></select></div>
+              <label>2. Si respondió SÍ, ¿con qué empresa y qué velocidad tiene contratada?</label>
+              <label class="survey-sub-label">Operador:</label>
+              <div class="survey-options survey-options-conn">
+                <label><input type="radio" name="conn-operador" value="UNE EPM"><span>UNE EPM</span></label>
+                <label><input type="radio" name="conn-operador" value="Claro"><span>Claro</span></label>
+                <label><input type="radio" name="conn-operador" value="Quality Net"><span>Quality Net</span></label>
+                <label><input type="radio" name="conn-operador" value="Cablenetbag"><span>Cablenetbag</span></label>
+                <label><input type="radio" name="conn-operador" value="OTRO"><span>Otro:</span></label>
+              </div>
+              <div class="form-group hidden" id="conn-operador-otro-wrap"><label for="conn-operador-otro">Otro:</label><input id="conn-operador-otro" maxlength="120"></div>
+              <label class="survey-sub-label">Velocidad:</label>
+              <div class="survey-options survey-options-conn">
+                <label><input type="radio" name="conn-velocidad" value="&lt;50 Mbps"><span>&lt; 50 Mbps</span></label>
+                <label><input type="radio" name="conn-velocidad" value="50-100 Mbps"><span>50-100 Mbps</span></label>
+                <label><input type="radio" name="conn-velocidad" value="100-300 Mbps"><span>100-300 Mbps</span></label>
+                <label><input type="radio" name="conn-velocidad" value="&gt;300 Mbps"><span>&gt; 300 Mbps</span></label>
+              </div>
             </div>
             <div id="conn-no-current-details" class="form-group form-group-wide hidden">
-              <label>3. Si no tiene servicio actual, ¿ha tenido Internet fijo residencial en los últimos 6 meses? *</label>
-              <div class="survey-options survey-options-inline"><label><input type="radio" name="conn-ultimos6" value="SI"><span>Sí</span></label><label><input type="radio" name="conn-ultimos6" value="NO"><span>No</span></label></div>
-              <p id="conn-eligibility-warning" class="muted hidden">Según la regla indicada, haber tenido Internet fijo en los últimos 6 meses inhabilita al hogar para esta oferta.</p>
+              <label>3. Si NO tiene servicio actual, ¿ha tenido Internet fijo residencial en los últimos 6 meses?</label>
+              <div class="survey-options survey-options-inline"><label><input type="radio" name="conn-ultimos6" value="SI"><span>SÍ (Inhabilitado por regla de 6 meses)</span></label><label><input type="radio" name="conn-ultimos6" value="NO"><span>NO</span></label></div>
+              <p id="conn-eligibility-warning" class="muted hidden">Inhabilitado por regla de 6 meses.</p>
             </div>
-            <div class="form-group form-group-wide"><label>4. ¿Le interesa contratar el proyecto de conectividad para cambiar vidas (25 Mbps por $25.000 COP/mes, para estratos 1 y 2, sujeto a requisitos)? *</label><div class="survey-options survey-options-inline"><label><input type="radio" name="conn-interesado" value="SI" required><span>Sí, interesado</span></label><label><input type="radio" name="conn-interesado" value="NO"><span>No</span></label></div></div>
+
+            <div class="form-group form-group-wide"><h4 class="survey-section-title">SECCIÓN II: EVALUACIÓN DE LA OFERTA SOCIAL Y MOTIVO DE RECHAZO</h4></div>
+            <div class="form-group form-group-wide"><label>4. Usted está enterado sobre el proyecto de conectividad para cambiar vidas, ofrecido por el gobierno nacional, dirigido a todos los estratos 1 y 2 del municipio de Caucasia: Internet fijo de 25 Mbps por $25.000 COP/mes, requiriendo cédula, recibo público y declaración juramentada de no haber tenido Internet fijo en los últimos 6 meses. ¿Le interesa contratar?</label><div class="survey-options survey-options-inline"><label><input type="radio" name="conn-interesado" value="SI" required><span>SÍ (Interesado)</span></label><label><input type="radio" name="conn-interesado" value="NO"><span>NO (Pase a pregunta 5)</span></label></div></div>
             <div id="conn-rejection-details" class="form-group form-group-wide hidden">
-              <label>5. Motivo principal de rechazo *</label>
-              <select id="conn-motivo"><option value="">Seleccione...</option><option value="A">A. Ya cuento con servicio superior</option><option value="B">B. Velocidad insuficiente</option><option value="C">C. Requisitos / trámites restrictivos</option><option value="D">D. Condiciones del inmueble / zona</option><option value="E">E. Preferencia por Internet móvil</option><option value="F">F. Otro motivo</option></select>
-              <div id="conn-motivo-otro-wrap" class="form-group hidden"><label for="conn-motivo-otro">Describa el otro motivo</label><textarea id="conn-motivo-otro" rows="3" maxlength="500"></textarea></div>
+              <label>5. Si su respuesta fue NO, seleccione el MOTIVO PRINCIPAL de rechazo:</label>
+              <div class="survey-options survey-options-list">
+                <label><input type="radio" name="conn-motivo" value="A"><span>A. YA CUENTO CON SERVICIO SUPERIOR (Mayor velocidad &gt;100 Mbps o TV empaquetada).</span></label>
+                <label><input type="radio" name="conn-motivo" value="B"><span>B. VELOCIDAD INSUFICIENTE (25 Mbps es muy bajo para las necesidades del hogar).</span></label>
+                <label><input type="radio" name="conn-motivo" value="C"><span>C. REQUISITOS / TRÁMITES RESTRICTIVOS (Tuvo servicio en 6 meses / no firma declaración).</span></label>
+                <label><input type="radio" name="conn-motivo" value="D"><span>D. CONDICIONES DEL INMUEBLE / ZONA (Arriendo temporal / falta de postearía / no legalizado).</span></label>
+                <label><input type="radio" name="conn-motivo" value="E"><span>E. PREFERENCIA POR INTERNET MÓVIL (Usa recargas o datos móviles).</span></label>
+                <label><input type="radio" name="conn-motivo" value="F"><span>F. OTRO MOTIVO:</span></label>
+              </div>
+              <div id="conn-motivo-otro-wrap" class="form-group hidden"><textarea id="conn-motivo-otro" rows="3" maxlength="500" aria-label="Otro motivo"></textarea></div>
             </div>
             <div class="form-actions form-actions-wide"><button type="reset" class="btn-secondary">Limpiar</button><button type="submit" class="btn-primary">Guardar encuesta de conectividad</button></div>
           </form>

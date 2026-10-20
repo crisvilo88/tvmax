@@ -23,6 +23,45 @@
     q5_agilidad: "¿CUANDO HA TENIDO DAÑOS O AVERÍAS EN ALGUNO DE LOS SERVICIOS CONTRATADOS, QUÉ TAN ÁGILES Y OPORTUNOS HEMOS SIDO?",
     q6_recomendaria: "RECOMENDARÍA NUESTROS SERVICIOS"
   };
+  const SURVEY_Q_FULL = {
+    q1: "1. CÓDIGO Y NOMBRE COMPLETO DEL USUARIO",
+    q2: "2. "+SURVEY_QUESTIONS.q2_servicio,
+    q3: "3. "+SURVEY_QUESTIONS.q3_tecnica,
+    q4: "4. "+SURVEY_QUESTIONS.q4_administrativa,
+    q5: "5. "+SURVEY_QUESTIONS.q5_agilidad,
+    q6: "6. "+SURVEY_QUESTIONS.q6_recomendaria,
+    q7: "7. ¿TIENE ALGUNA RECOMENDACIÓN O FELICITACIÓN QUE HACERLE A GRUPO TV MAX?"
+  };
+  const CONN_QUESTIONS = {
+    q1: "1. ¿Cuenta actualmente su hogar con servicio de Internet fijo residencial?",
+    q2: "2. Si respondió SÍ, ¿con qué empresa y qué velocidad tiene contratada?",
+    q3: "3. Si NO tiene servicio actual, ¿ha tenido Internet fijo residencial en los últimos 6 meses?",
+    q4: "4. Usted está enterado sobre el proyecto de conectividad para cambiar vidas, ofrecido por el gobierno nacional, dirigido a todos los estratos 1 y 2 del municipio de Caucasia: Internet fijo de 25 Mbps por $25.000 COP/mes, requiriendo cédula, recibo público y declaración juramentada de no haber tenido Internet fijo en los últimos 6 meses. ¿Le interesa contratar?",
+    q5: "5. Si su respuesta fue NO, seleccione el MOTIVO PRINCIPAL de rechazo:"
+  };
+  const CONN_REASONS = {
+    A: "A. YA CUENTO CON SERVICIO SUPERIOR (Mayor velocidad >100 Mbps o TV empaquetada).",
+    B: "B. VELOCIDAD INSUFICIENTE (25 Mbps es muy bajo para las necesidades del hogar).",
+    C: "C. REQUISITOS / TRÁMITES RESTRICTIVOS (Tuvo servicio en 6 meses / no firma declaración).",
+    D: "D. CONDICIONES DEL INMUEBLE / ZONA (Arriendo temporal / falta de postearía / no legalizado).",
+    E: "E. PREFERENCIA POR INTERNET MÓVIL (Usa recargas o datos móviles).",
+    F: "F. OTRO MOTIVO"
+  };
+  const CONN_OPERATORS = ["UNE EPM","Claro","Quality Net","Cablenetbag"];
+  const CONN_SPEEDS = ["<50 Mbps","50-100 Mbps","100-300 Mbps",">300 Mbps"];
+  const CONN_SPEED_LABEL = {"<50 Mbps":"< 50 Mbps",">300 Mbps":"> 300 Mbps"};
+  const radioVal = name => document.querySelector(`input[name="${name}"]:checked`)?.value || "";
+  function chunkArray(a,n){const o=[];for(let i=0;i<a.length;i+=n)o.push(a.slice(i,i+n));return o;}
+  function qaTable(head,pairs){return `<table class="qa-table"><thead><tr><th class="qa-head" colspan="2">${head}</th></tr></thead><tbody>${pairs.map(([q,a])=>`<tr><td class="qa-q">${escapeHTML(q)}</td><td class="qa-a">${a}</td></tr>`).join("")}</tbody></table>`;}
+  function qaDistBlock(title,qText,pairs,total){const pct=n=>total?Math.round(n/total*100):0;return `<div><h3>${escapeHTML(title)}</h3><p class="q-text">${escapeHTML(qText)}</p><table><thead><tr><th>Respuesta</th><th>Cantidad</th><th>%</th></tr></thead><tbody>${pairs.map(([l,n])=>`<tr><td>${escapeHTML(l)}</td><td>${n}</td><td>${pct(n)}%</td></tr>`).join("")}</tbody></table></div>`;}
+  // Cada hoja se dibuja por separado en el PDF, así los reportes largos no superan el límite de tamaño del canvas.
+  function composeQASheets({headerHTML,summaryHTML,sectionsHTML,cards,perSheet,detailTitle}){
+    const sheet=inner=>`<div class="print-report-sheet survey-print-sheet compact-pdf">${inner}</div>`;
+    let done=0;
+    const first=sheet(headerHTML+summaryHTML+sectionsHTML+(cards.length?"":'<p class="print-empty-row">Sin resultados para los filtros seleccionados.</p>'));
+    const rest=chunkArray(cards,perSheet).map(g=>{const out=sheet(`<div class="print-table-title"><div><span class="print-kicker">DETALLE</span><h2>${escapeHTML(detailTitle)}</h2></div><strong>${done+1}–${done+g.length} de ${cards.length}</strong></div>${g.join("")}`);done+=g.length;return out;});
+    return first+rest.join("");
+  }
   function isGoalOperation(s){return s.tipo_operacion==="Venta"||s.tipo_operacion==="Reconexión";}
   function excelColRef(n){let s="",m=n+1;while(m>0){const r=(m-1)%26;s=String.fromCharCode(65+r)+s;m=Math.floor((m-1)/26);}return s;}
   function excelRangeRef(sheetName,row0,row1,col){return `'${sheetName.replace(/'/g,"''")}'!$${excelColRef(col)}$${row0+1}:$${excelColRef(col)}$${row1+1}`;}
@@ -173,16 +212,17 @@
     document.querySelectorAll('input[name="conn-actual"]').forEach(el=>el.addEventListener("change",updateConnectivityConditionalFields));
     document.querySelectorAll('input[name="conn-ultimos6"]').forEach(el=>el.addEventListener("change",updateConnectivityConditionalFields));
     document.querySelectorAll('input[name="conn-interesado"]').forEach(el=>el.addEventListener("change",updateConnectivityConditionalFields));
-    id("conn-operador").addEventListener("change",updateConnectivityConditionalFields);
-    id("conn-motivo").addEventListener("change",updateConnectivityConditionalFields);
+    document.querySelectorAll('input[name="conn-operador"]').forEach(el=>el.addEventListener("change",updateConnectivityConditionalFields));
+    document.querySelectorAll('input[name="conn-motivo"]').forEach(el=>el.addEventListener("change",updateConnectivityConditionalFields));
     id("connectivity-survey-form").addEventListener("reset",()=>setTimeout(updateConnectivityConditionalFields,0));
     ["conn-report-search","conn-report-estrato","conn-report-interest","conn-report-eligibility","conn-report-from","conn-report-to"].forEach(k=>id(k).addEventListener("input",renderConnectivityReport));
     ["conn-report-estrato","conn-report-interest","conn-report-eligibility","conn-report-from","conn-report-to"].forEach(k=>id(k).addEventListener("change",renderConnectivityReport));
     id("btn-clear-connectivity-filters").addEventListener("click",clearConnectivityFilters);
-    id("btn-preview-connectivity-report").addEventListener("click",()=>previewReport(buildConnectivityReportHTML));
-    id("btn-print-connectivity-report").addEventListener("click",()=>printReport(buildConnectivityReportHTML));
-    id("btn-pdf-connectivity-report").addEventListener("click",()=>downloadPDF(buildConnectivityReportHTML,"reporte-encuesta-conectividad"));
-    id("btn-excel-connectivity-report").addEventListener("click",downloadConnectivityExcel);
+    const connExport=fn=>async()=>{try{await loadConnectivityReportData();}catch(e){console.error(e);showToast("No fue posible cargar las encuestas de conectividad: "+(e?.message||"revisa la migración SQL"),true);return;}fn();};
+    id("btn-preview-connectivity-report").addEventListener("click",connExport(()=>previewReport(buildConnectivityReportHTML)));
+    id("btn-print-connectivity-report").addEventListener("click",connExport(()=>printReport(buildConnectivityReportHTML)));
+    id("btn-pdf-connectivity-report").addEventListener("click",connExport(()=>downloadPDF(buildConnectivityReportHTML,"reporte-encuesta-conectividad")));
+    id("btn-excel-connectivity-report").addEventListener("click",connExport(downloadConnectivityExcel));
     ensureSurveyZoneFilter();
     let surveyFilterTimer=null;
     ["filtroEncuestaTexto","filtroEncuestaQ6","filtroEncuestaZona"].forEach(x=>{
@@ -191,10 +231,11 @@
     });
     ["filtroEncuestaDesde","filtroEncuestaHasta"].forEach(x=>{id(x)?.addEventListener("change",()=>{loadSurveyReportData(true).catch(e=>{console.error("No fue posible actualizar el rango de encuestas",e);showToast("No fue posible aplicar el rango de fechas.",true);});});});
     id("btn-clear-survey-filters").addEventListener("click",clearSurveyFilters);
-    id("btn-preview-survey-report").addEventListener("click",()=>previewReport(buildSurveyReportHTML));
-    id("btn-print-survey-report").addEventListener("click",()=>printReport(buildSurveyReportHTML));
-    id("btn-pdf-survey-report").addEventListener("click",()=>downloadPDF(buildSurveySummaryHTML,"reporte-encuestas"));
-    id("btn-excel-survey-report").addEventListener("click",downloadSurveyExcel);
+    const surveyExport=fn=>async()=>{try{await loadSurveyReportForExport();}catch(e){console.error(e);showToast("No fue posible cargar las encuestas para el reporte: "+(e?.message||"revisa la migración SQL"),true);return;}fn();};
+    id("btn-preview-survey-report").addEventListener("click",surveyExport(()=>previewReport(buildSurveyReportHTML)));
+    id("btn-print-survey-report").addEventListener("click",surveyExport(()=>printReport(buildSurveyReportHTML)));
+    id("btn-pdf-survey-report").addEventListener("click",surveyExport(()=>downloadPDF(buildSurveyReportHTML,"reporte-encuestas")));
+    id("btn-excel-survey-report").addEventListener("click",surveyExport(downloadSurveyExcel));
     id("btn-download-backup").addEventListener("click", downloadBackup);
     ensureSurveyZoneFilter();
   }
@@ -331,7 +372,7 @@
     e.target.reset();
     surveys.unshift(data);
     renderAdvisorSurveys();
-    if(currentProfile?.rol==="administrador") renderSurveyReport();
+    if(currentProfile?.rol==="administrador") loadSurveyReportData(true).catch(err=>console.error("No se pudo refrescar el reporte de encuestas",err));
     showToast("Encuesta guardada correctamente.");
   }
 
@@ -345,46 +386,44 @@
   }
 
   function updateConnectivityConditionalFields(){
-    const current=document.querySelector('input[name="conn-actual"]:checked')?.value||"";
-    const last6=document.querySelector('input[name="conn-ultimos6"]:checked')?.value||"";
-    const interested=document.querySelector('input[name="conn-interesado"]:checked')?.value||"";
-    const operator=value("conn-operador"),reason=value("conn-motivo");
+    const current=radioVal("conn-actual"),last6=radioVal("conn-ultimos6"),interested=radioVal("conn-interesado"),operator=radioVal("conn-operador"),reason=radioVal("conn-motivo");
     id("conn-current-details").classList.toggle("hidden",current!=="SI");
     id("conn-no-current-details").classList.toggle("hidden",current!=="NO");
     id("conn-operador-otro-wrap").classList.toggle("hidden",current!=="SI"||operator!=="OTRO");
     id("conn-rejection-details").classList.toggle("hidden",interested!=="NO");
     id("conn-motivo-otro-wrap").classList.toggle("hidden",interested!=="NO"||reason!=="F");
     id("conn-eligibility-warning").classList.toggle("hidden",current!=="NO"||last6!=="SI");
-    id("conn-operador").required=current==="SI";
-    id("conn-velocidad").required=current==="SI";
+    document.querySelectorAll('input[name="conn-operador"],input[name="conn-velocidad"]').forEach(el=>el.required=current==="SI");
     id("conn-operador-otro").required=current==="SI"&&operator==="OTRO";
     document.querySelectorAll('input[name="conn-ultimos6"]').forEach(el=>el.required=current==="NO");
-    id("conn-motivo").required=interested==="NO";
+    document.querySelectorAll('input[name="conn-motivo"]').forEach(el=>el.required=interested==="NO");
     id("conn-motivo-otro").required=interested==="NO"&&reason==="F";
   }
 
   async function registerConnectivitySurvey(e){
     e.preventDefault();
     if(!currentUser||!["asesor","administrador"].includes(currentProfile?.rol)){showToast("No tienes permisos para registrar encuestas.",true);return;}
-    const current=document.querySelector('input[name="conn-actual"]:checked')?.value||"";
-    const last6=current==="NO"?(document.querySelector('input[name="conn-ultimos6"]:checked')?.value||""):null;
-    const interested=document.querySelector('input[name="conn-interesado"]:checked')?.value||"";
-    const operator=value("conn-operador");
-    const reason=interested==="NO"?value("conn-motivo"):null;
+    const current=radioVal("conn-actual");
+    const last6=current==="NO"?radioVal("conn-ultimos6"):null;
+    const interested=radioVal("conn-interesado");
+    const operator=radioVal("conn-operador"),speed=radioVal("conn-velocidad");
+    const reason=interested==="NO"?radioVal("conn-motivo"):null;
+    const estrato=Number(radioVal("conn-estrato"));
     const eligible=!(current==="NO"&&last6==="SI");
-    if(current==="SI"&&(!operator||!value("conn-velocidad")||(operator==="OTRO"&&!value("conn-operador-otro")))){showToast("Indica el operador y la velocidad contratada.",true);return;}
-    if(current==="NO"&&!last6){showToast("Responde si tuvo Internet fijo en los últimos 6 meses.",true);return;}
-    if(interested==="NO"&&(!reason||(reason==="F"&&!value("conn-motivo-otro")))){showToast("Selecciona el motivo de rechazo y descríbelo si elegiste Otro.",true);return;}
+    if(![1,2].includes(estrato)){showToast("Selecciona el estrato.",true);return;}
+    if(current==="SI"&&(!operator||!speed||(operator==="OTRO"&&!value("conn-operador-otro")))){showToast("Indica el operador y la velocidad contratada (pregunta 2).",true);return;}
+    if(current==="NO"&&!last6){showToast("Responde la pregunta 3.",true);return;}
+    if(interested==="NO"&&(!reason||(reason==="F"&&!value("conn-motivo-otro")))){showToast("Selecciona el motivo de rechazo (pregunta 5) y descríbelo si elegiste F.",true);return;}
     const row={
       asesor_id:currentUser.id,
       nombre_completo:value("conn-nombre"),
       identificacion:value("conn-identificacion"),
       celular:value("conn-celular"),
       barrio_sector:value("conn-barrio"),
-      estrato:Number(value("conn-estrato")),
+      estrato,
       tiene_internet_actual:current,
       operador:current==="SI"?(operator==="OTRO"?value("conn-operador-otro"):operator):null,
-      velocidad:current==="SI"?value("conn-velocidad"):null,
+      velocidad:current==="SI"?speed:null,
       tuvo_internet_ultimos_6_meses:last6,
       interesado:interested,
       motivo_rechazo:reason,
@@ -436,8 +475,9 @@
   }
 
   function connectivityReason(r){
-    const labels={A:"Ya cuento con servicio superior",B:"Velocidad insuficiente",C:"Requisitos / trámites restrictivos",D:"Condiciones del inmueble / zona",E:"Preferencia por Internet móvil",F:"Otro motivo"};
-    return r.motivo_rechazo?`${labels[r.motivo_rechazo]||r.motivo_rechazo}${r.motivo_rechazo==="F"&&r.motivo_rechazo_otro?": "+r.motivo_rechazo_otro:""}`:"—";
+    if(!r.motivo_rechazo)return "—";
+    const base=CONN_REASONS[r.motivo_rechazo]||r.motivo_rechazo;
+    return r.motivo_rechazo==="F"&&r.motivo_rechazo_otro?`${base}: ${r.motivo_rechazo_otro}`:base;
   }
   function connectivityAdvisorName(r){const p=r.perfiles||{};return [p.nombre,p.apellido].filter(Boolean).join(" ")||p.email||"—";}
   function renderConnectivityReport(){
@@ -447,20 +487,75 @@
     tbody.innerHTML=rows.length?rows.map(r=>`<tr><td>${formatDate(r.fecha_encuesta)}</td><td>${escapeHTML(connectivityAdvisorName(r))}</td><td>${escapeHTML(r.nombre_completo||"—")}</td><td>${escapeHTML(r.identificacion||"—")}</td><td>${escapeHTML(r.celular||"—")}</td><td>${escapeHTML(r.barrio_sector||"—")}</td><td>${escapeHTML(r.estrato||"—")}</td><td>${escapeHTML(r.tiene_internet_actual||"—")}</td><td>${escapeHTML(r.operador||"—")}</td><td>${escapeHTML(r.velocidad||"—")}</td><td>${escapeHTML(r.tuvo_internet_ultimos_6_meses||"No aplica")}</td><td>${escapeHTML(r.interesado||"—")}</td><td>${escapeHTML(connectivityReason(r))}</td><td>${r.elegibilidad==="INHABILITADO"?"Inhabilitado":"Elegible según respuestas"}</td></tr>`).join(""):'<tr class="empty-row"><td colspan="14">No hay encuestas que coincidan con los filtros.</td></tr>';
   }
   function clearConnectivityFilters(){["conn-report-search","conn-report-estrato","conn-report-interest","conn-report-eligibility","conn-report-from","conn-report-to"].forEach(k=>id(k).value="");renderConnectivityReport();}
+  // Pregunta → respuesta de una encuesta de conectividad (texto plano).
+  function connectivityQA(r){
+    const yn=v=>v==="SI"?"SÍ":v==="NO"?"NO":"—";
+    const speed=CONN_SPEED_LABEL[r.velocidad]||r.velocidad||"—";
+    return [
+      [CONN_QUESTIONS.q1, r.tiene_internet_actual==="SI"?"SÍ (Pase a pregunta 2)":r.tiene_internet_actual==="NO"?"NO (Pase a pregunta 3)":"—"],
+      [CONN_QUESTIONS.q2, r.tiene_internet_actual==="SI"?`Operador: ${r.operador||"—"} · Velocidad: ${speed}`:"No aplica (respondió NO en la pregunta 1)"],
+      [CONN_QUESTIONS.q3, r.tiene_internet_actual==="NO"?(r.tuvo_internet_ultimos_6_meses==="SI"?"SÍ (Inhabilitado por regla de 6 meses)":yn(r.tuvo_internet_ultimos_6_meses)):"No aplica (respondió SÍ en la pregunta 1)"],
+      [CONN_QUESTIONS.q4, r.interesado==="SI"?"SÍ (Interesado)":r.interesado==="NO"?"NO (Pase a pregunta 5)":"—"],
+      [CONN_QUESTIONS.q5, r.interesado==="NO"?connectivityReason(r):"No aplica (respondió SÍ en la pregunta 4)"]
+    ];
+  }
+  function connectivityDistributions(rows){
+    const n=(fn)=>rows.filter(fn).length;
+    const opPairs=CONN_OPERATORS.map(o=>[o,n(r=>r.tiene_internet_actual==="SI"&&r.operador===o)]);
+    const otros=n(r=>r.tiene_internet_actual==="SI"&&r.operador&&!CONN_OPERATORS.includes(r.operador));
+    opPairs.push(["Otro",otros]);
+    return {
+      q1:[["SÍ",n(r=>r.tiene_internet_actual==="SI")],["NO",n(r=>r.tiene_internet_actual==="NO")]],
+      q2op:opPairs,
+      q2vel:CONN_SPEEDS.map(v=>[CONN_SPEED_LABEL[v]||v,n(r=>r.tiene_internet_actual==="SI"&&r.velocidad===v)]),
+      q3:[["SÍ (Inhabilitado por regla de 6 meses)",n(r=>r.tiene_internet_actual==="NO"&&r.tuvo_internet_ultimos_6_meses==="SI")],["NO",n(r=>r.tiene_internet_actual==="NO"&&r.tuvo_internet_ultimos_6_meses==="NO")]],
+      q4:[["SÍ (Interesado)",n(r=>r.interesado==="SI")],["NO",n(r=>r.interesado==="NO")]],
+      q5:Object.keys(CONN_REASONS).map(k=>[CONN_REASONS[k],n(r=>r.interesado==="NO"&&r.motivo_rechazo===k)]),
+      estrato:[["Estrato 1",n(r=>Number(r.estrato)===1)],["Estrato 2",n(r=>Number(r.estrato)===2)]]
+    };
+  }
   function buildConnectivityReportHTML(){
-    const rows=getFilteredConnectivityRows();
-    const body=rows.map(r=>`<tr><td>${formatDate(r.fecha_encuesta)}</td><td>${escapeHTML(connectivityAdvisorName(r))}</td><td>${escapeHTML(r.nombre_completo)}</td><td>${escapeHTML(r.identificacion)}</td><td>${escapeHTML(r.celular)}</td><td>${escapeHTML(r.barrio_sector)}</td><td>${escapeHTML(r.estrato)}</td><td>${escapeHTML(r.tiene_internet_actual)}</td><td>${escapeHTML(r.operador||"—")}</td><td>${escapeHTML(r.velocidad||"—")}</td><td>${escapeHTML(r.tuvo_internet_ultimos_6_meses||"No aplica")}</td><td>${escapeHTML(r.interesado)}</td><td>${escapeHTML(connectivityReason(r))}</td><td>${escapeHTML(r.elegibilidad==="INHABILITADO"?"Inhabilitado":"Elegible según respuestas")}</td></tr>`).join("");
-    const total=rows.length,interested=rows.filter(r=>r.interesado==="SI").length,notInterested=rows.filter(r=>r.interesado==="NO").length,eligible=rows.filter(r=>r.elegibilidad==="ELEGIBLE").length,ineligible=rows.filter(r=>r.elegibilidad==="INHABILITADO").length,stratum1=rows.filter(r=>Number(r.estrato)===1).length,stratum2=rows.filter(r=>Number(r.estrato)===2).length;
+    const rows=getFilteredConnectivityRows(),total=rows.length;
+    const interested=rows.filter(r=>r.interesado==="SI").length,ineligible=rows.filter(r=>r.elegibilidad==="INHABILITADO").length;
     const pct=n=>total?Math.round(n/total*100):0;
-    const metric=(label,n)=>`<div class="print-advisor-row"><div class="print-advisor-label"><span>${escapeHTML(label)}</span><strong>${n} (${pct(n)}%)</strong></div><div class="print-bar-track"><div class="print-bar-fill" style="width:${pct(n)}%"></div></div></div>`;
-    return `<div class="print-report-sheet compact-pdf"><div class="print-header"><div><span class="print-kicker">REPORTE DE CAMPO</span><h1>Encuesta de conectividad</h1><p>Resultados según los filtros aplicados</p></div><div class="print-generated">Generado: ${new Date().toLocaleString("es-CO")}</div></div><div class="print-summary"><div class="print-summary-card"><span>Total encuestas</span><strong>${total}</strong></div><div class="print-summary-card"><span>Interesados</span><strong>${interested} (${pct(interested)}%)</strong></div><div class="print-summary-card"><span>Inhabilitados por regla de 6 meses</span><strong>${ineligible}</strong></div></div><section class="print-charts"><div class="print-chart-card"><h2>Interés en la oferta</h2>${metric("Sí, interesado",interested)}${metric("No interesado",notInterested)}${total?"":'<div class="print-empty-chart">Sin datos para graficar</div>'}</div><div class="print-chart-card"><h2>Elegibilidad</h2>${metric("Elegible",eligible)}${metric("Inhabilitado",ineligible)}${total?"":'<div class="print-empty-chart">Sin datos para graficar</div>'}</div><div class="print-chart-card"><h2>Distribución por estrato</h2>${metric("Estrato 1",stratum1)}${metric("Estrato 2",stratum2)}${total?"":'<div class="print-empty-chart">Sin datos para graficar</div>'}</div></section><section class="print-table-section"><div class="print-table-title"><div><span class="print-kicker">DETALLE</span><h2>Encuestas registradas</h2></div><strong>${total} resultado${total===1?"":"s"}</strong></div><div class="print-table-scroll"><table><thead><tr><th>Fecha</th><th>Asesor</th><th>Nombre</th><th>Identificación</th><th>Celular</th><th>Barrio / Sector</th><th>Estrato</th><th>Internet actual</th><th>Operador</th><th>Velocidad</th><th>Internet últimos 6 meses</th><th>Interesado</th><th>Motivo rechazo</th><th>Elegibilidad</th></tr></thead><tbody>${body||'<tr><td colspan="14" class="print-empty-row">Sin resultados para los filtros seleccionados.</td></tr>'}</tbody></table></div></section></div>`;
+    const d=connectivityDistributions(rows);
+    const period=value("conn-report-from")||value("conn-report-to")?`${value("conn-report-from")?formatDate(value("conn-report-from")):"Inicio"} – ${value("conn-report-to")?formatDate(value("conn-report-to")):"Actual"}`:"Todos los periodos";
+    const headerHTML=`<div class="print-header"><div><span class="print-kicker">REPORTE DE CAMPO</span><h1>Encuesta de diagnóstico de conectividad</h1><p>Periodo: <strong>${escapeHTML(period)}</strong></p></div><div class="print-generated">Generado: ${new Date().toLocaleString("es-CO")}</div></div>`;
+    const summaryHTML=`<div class="print-summary"><div class="print-summary-card"><span>Total encuestas</span><strong>${total}</strong></div><div class="print-summary-card"><span>Interesados</span><strong>${interested} (${pct(interested)}%)</strong></div><div class="print-summary-card"><span>Inhabilitados por regla de 6 meses</span><strong>${ineligible}</strong></div></div>`;
+    const sectionsHTML=`<section class="print-table-section"><div class="print-table-title"><div><span class="print-kicker">DISTRIBUCIÓN</span><h2>Respuestas por pregunta</h2></div></div><div class="survey-print-distributions">${qaDistBlock("Datos de control","Estrato",d.estrato,total)}${qaDistBlock("Pregunta 1",CONN_QUESTIONS.q1,d.q1,total)}${qaDistBlock("Pregunta 2 · Operador",CONN_QUESTIONS.q2,d.q2op,d.q2op.reduce((a,x)=>a+x[1],0))}${qaDistBlock("Pregunta 2 · Velocidad",CONN_QUESTIONS.q2,d.q2vel,d.q2vel.reduce((a,x)=>a+x[1],0))}${qaDistBlock("Pregunta 3",CONN_QUESTIONS.q3,d.q3,d.q3.reduce((a,x)=>a+x[1],0))}${qaDistBlock("Pregunta 4",CONN_QUESTIONS.q4,d.q4,total)}${qaDistBlock("Pregunta 5",CONN_QUESTIONS.q5,d.q5,d.q5.reduce((a,x)=>a+x[1],0))}</div></section>`;
+    const cards=rows.map((r,i)=>{
+      const head=`Encuesta ${i+1} · ${escapeHTML(formatDate(r.fecha_encuesta))} · Asesor: ${escapeHTML(connectivityAdvisorName(r))} · ${r.elegibilidad==="INHABILITADO"?"INHABILITADO":"Elegible según respuestas"}`;
+      const control=[["Nombre",r.nombre_completo],["Identificación",r.identificacion],["Celular",r.celular],["Barrio / Sector",r.barrio_sector],["Estrato",r.estrato]].map(([q,a])=>[q+":",escapeHTML(a||"—")]);
+      return qaTable(head,[...control,...connectivityQA(r).map(([q,a])=>[q,escapeHTML(a)])]);
+    });
+    return composeQASheets({headerHTML,summaryHTML,sectionsHTML,cards,perSheet:12,detailTitle:"Preguntas y respuestas por encuesta"});
   }
   async function downloadConnectivityExcel(){
     if(!window.XLSX){showToast("No se pudo cargar el módulo de Excel.",true);return;}
-    const rows=getFilteredConnectivityRows();
-    const data=rows.map(r=>({"Fecha":r.fecha_encuesta,"Asesor":connectivityAdvisorName(r),"Nombre":r.nombre_completo,"Identificación":r.identificacion,"Celular":r.celular,"Barrio / Sector":r.barrio_sector,"Estrato":r.estrato,"Internet actual":r.tiene_internet_actual,"Operador":r.operador||"","Velocidad":r.velocidad||"","Internet últimos 6 meses":r.tuvo_internet_ultimos_6_meses||"No aplica","Interesado":r.interesado,"Motivo rechazo":connectivityReason(r),"Elegibilidad":r.elegibilidad==="INHABILITADO"?"Inhabilitado":"Elegible según respuestas"}));
-    const wb=XLSX.utils.book_new(),ws=XLSX.utils.json_to_sheet(data.length?data:[{"Mensaje":"No hay registros para los filtros seleccionados"}]);
-    XLSX.utils.book_append_sheet(wb,ws,"Conectividad");XLSX.writeFile(wb,"reporte-encuesta-conectividad.xlsx");
+    const rows=getFilteredConnectivityRows(),total=rows.length,d=connectivityDistributions(rows);
+    const pct=n=>`${total?Math.round(n/total*100):0}%`;
+    const period=value("conn-report-from")||value("conn-report-to")?`${value("conn-report-from")?formatDate(value("conn-report-from")):"Inicio"} – ${value("conn-report-to")?formatDate(value("conn-report-to")):"Actual"}`:"Todos los periodos";
+    const aoa=[["REPORTE DE ENCUESTAS DE DIAGNÓSTICO DE CONECTIVIDAD"],["Periodo",period],["Total encuestas",total],[]];
+    const block=(title,q,pairs)=>{const t=pairs.reduce((a,x)=>a+x[1],0);aoa.push([title,q]);aoa.push(["Respuesta","Cantidad","%"]);pairs.forEach(([l,c])=>aoa.push([l,c,t?`${Math.round(c/t*100)}%`:"0%"]));aoa.push([]);};
+    block("DATOS DE CONTROL","Estrato",d.estrato);
+    block("PREGUNTA 1",CONN_QUESTIONS.q1,d.q1);
+    block("PREGUNTA 2 · OPERADOR",CONN_QUESTIONS.q2,d.q2op);
+    block("PREGUNTA 2 · VELOCIDAD",CONN_QUESTIONS.q2,d.q2vel);
+    block("PREGUNTA 3",CONN_QUESTIONS.q3,d.q3);
+    block("PREGUNTA 4",CONN_QUESTIONS.q4,d.q4);
+    block("PREGUNTA 5",CONN_QUESTIONS.q5,d.q5);
+    const wb=XLSX.utils.book_new();
+    const wsR=XLSX.utils.aoa_to_sheet(aoa);wsR["!cols"]=[{wch:42},{wch:90},{wch:10}];
+    XLSX.utils.book_append_sheet(wb,wsR,"Resumen por pregunta");
+    const data=rows.map(r=>{const qa=connectivityQA(r);return {
+      "Fecha":r.fecha_encuesta||"","Asesor":connectivityAdvisorName(r),"Nombre":r.nombre_completo||"","Identificación":r.identificacion||"","Celular":r.celular||"","Barrio / Sector":r.barrio_sector||"","Estrato":r.estrato||"",
+      [CONN_QUESTIONS.q1]:qa[0][1],[CONN_QUESTIONS.q2]:qa[1][1],[CONN_QUESTIONS.q3]:qa[2][1],[CONN_QUESTIONS.q4]:qa[3][1],[CONN_QUESTIONS.q5]:qa[4][1],
+      "Elegibilidad":r.elegibilidad==="INHABILITADO"?"Inhabilitado":"Elegible según respuestas"
+    };});
+    const ws=XLSX.utils.json_to_sheet(data.length?data:[{"Mensaje":"No hay registros para los filtros seleccionados"}]);
+    ws["!cols"]=[{wch:12},{wch:24},{wch:28},{wch:16},{wch:14},{wch:24},{wch:8},{wch:30},{wch:38},{wch:38},{wch:45},{wch:60},{wch:22}];
+    XLSX.utils.book_append_sheet(wb,ws,"Preguntas y respuestas");
+    XLSX.writeFile(wb,`reporte-encuesta-conectividad-${getTodayISO()}.xlsx`);
     showToast("Reporte Excel de conectividad descargado.");
   }
 
@@ -667,19 +762,33 @@
     const list=getFilteredSurveys(),total=list.length,yes=list.filter(s=>s.q6_recomendaria==="SI").length,no=list.filter(s=>s.q6_recomendaria==="NO").length;
     const pct=n=>total?Math.round(n/total*100):0;
     const advisorRows=surveyReportPeople().map(a=>{
-      const rows=list.filter(s=>s.asesor_id===a.id), y=rows.filter(s=>s.q6_recomendaria==="SI").length, p=rows.length?Math.round(y/rows.length*100):0;
+      const rows=list.filter(s=>s.asesor_id===a.id),y=rows.filter(s=>s.q6_recomendaria==="SI").length,p=rows.length?Math.round(y/rows.length*100):0;
       if(!rows.length)return "";
       const name=[a.nombre,a.apellido].filter(Boolean).join(" ")||a.email||"Asesor";
       return `<tr><td>${escapeHTML(name)}</td><td>${rows.length}</td><td>${y}</td><td>${rows.length-y}</td><td>${p}%</td></tr>`;
     }).join("")||'<tr><td colspan="5" class="print-empty-row">No hay datos.</td></tr>';
-    const detail=list.map(s=>{
-      const a=s.perfiles||{},name=[a.nombre,a.apellido].filter(Boolean).join(" ")||a.email||"—";
-      const withNote=(val,note)=>escapeHTML(val||"—")+(note?`<br><small>${escapeHTML(note)}</small>`:"");
-      return `<tr><td>${formatDate(s.fecha_encuesta)}</td><td>${escapeHTML(name)}</td><td>${escapeHTML(s.zona_encuesta||"Sin zona")}</td><td>${escapeHTML(s.codigo_nombre_usuario||"—")}</td><td>${withNote(s.q2_servicio,s.observacion_q2)}</td><td>${withNote(s.q3_tecnica,s.observacion_q3)}</td><td>${withNote(s.q4_administrativa,s.observacion_q4)}</td><td>${escapeHTML(s.q5_agilidad||"—")}</td><td>${escapeHTML(s.q6_recomendaria||"—")}</td><td>${escapeHTML(s.q7_recomendacion||"—")}</td></tr>`;
-    }).join("")||'<tr><td colspan="9" class="print-empty-row">No hay encuestas para mostrar.</td></tr>';
-    const dist=(field,opts)=>opts.map(o=>`<tr><td>${escapeHTML(o)}</td><td>${list.filter(s=>s[field]===o).length}</td><td>${pct(list.filter(s=>s[field]===o).length)}%</td></tr>`).join("");
+    const zoneRows=Object.entries(list.reduce((m,s)=>{const z=s.zona_encuesta||"Sin zona";m[z]=(m[z]||0)+1;return m;},{})).sort((a,b)=>b[1]-a[1]).map(([z,n])=>`<tr><td>${escapeHTML(z)}</td><td>${n}</td><td>${pct(n)}%</td></tr>`).join("")||'<tr><td colspan="3" class="print-empty-row">No hay datos por zona.</td></tr>';
+    const cnt=(field,opts)=>opts.map(o=>[o,list.filter(s=>s[field]===o).length]);
+    const GOOD=["BUENO","EXCELENTE","MALO","MUY MALO","REGULAR"];
     const period=value("filtroEncuestaDesde")||value("filtroEncuestaHasta")?`${value("filtroEncuestaDesde")?formatDate(value("filtroEncuestaDesde")):"Inicio"} – ${value("filtroEncuestaHasta")?formatDate(value("filtroEncuestaHasta")):"Actual"}`:"Todos los periodos";
-    return `<div class="print-report-sheet survey-print-sheet">${config.logo_url?`<div class="print-logo"><img loading="lazy" src="${config.logo_url}" alt="Logo"></div>`:""}<div class="print-header"><div><span class="print-kicker">REPORTE DE ENCUESTAS</span><h1>Satisfacción de usuarios</h1><p>Periodo: <strong>${escapeHTML(period)}</strong></p></div><div class="print-generated">Generado: ${new Date().toLocaleString("es-CO")}</div></div><div class="print-summary"><div class="print-summary-card"><span>Total encuestas</span><strong>${total}</strong></div><div class="print-summary-card"><span>Recomiendan</span><strong>${yes} (${pct(yes)}%)</strong></div><div class="print-summary-card"><span>No recomiendan</span><strong>${no} (${pct(no)}%)</strong></div></div><section class="print-table-section"><div class="print-table-title"><div><span class="print-kicker">POR ASESOR</span><h2>Encuestas registradas por asesor</h2></div></div><div class="print-table-scroll"><table><thead><tr><th>Asesor</th><th>Total</th><th>Sí</th><th>No</th><th>% Sí</th></tr></thead><tbody>${advisorRows}</tbody></table></div></section><section class="print-table-section"><div class="print-table-title"><div><span class="print-kicker">POR ZONA</span><h2>Encuestas realizadas por zona</h2></div></div><div class="print-table-scroll"><table><thead><tr><th>Zona</th><th>Encuestas</th><th>%</th></tr></thead><tbody>${Object.entries(list.reduce((m,s)=>{const z=s.zona_encuesta||"Sin zona";m[z]=(m[z]||0)+1;return m;},{})).sort((a,b)=>b[1]-a[1]).map(([z,n])=>`<tr><td>${escapeHTML(z)}</td><td>${n}</td><td>${pct(n)}%</td></tr>`).join("")||'<tr><td colspan="3" class="print-empty-row">No hay datos por zona.</td></tr>'}</tbody></table></div></section><section class="print-table-section"><div class="print-table-title"><div><span class="print-kicker">DISTRIBUCIÓN</span><h2>Respuestas por pregunta</h2></div></div><div class="survey-print-distributions"><div><h3>Pregunta 2</h3><p class="q-text">${escapeHTML(SURVEY_QUESTIONS.q2_servicio)}</p><table><thead><tr><th>Respuesta</th><th>Cantidad</th><th>%</th></tr></thead><tbody>${dist("q2_servicio",["BUENO","EXCELENTE","MALO","MUY MALO","REGULAR"])}</tbody></table></div><div><h3>Pregunta 3</h3><p class="q-text">${escapeHTML(SURVEY_QUESTIONS.q3_tecnica)}</p><table><thead><tr><th>Respuesta</th><th>Cantidad</th><th>%</th></tr></thead><tbody>${dist("q3_tecnica",["BUENO","EXCELENTE","MALO","MUY MALO","REGULAR"])}</tbody></table></div><div><h3>Pregunta 4</h3><p class="q-text">${escapeHTML(SURVEY_QUESTIONS.q4_administrativa)}</p><table><thead><tr><th>Respuesta</th><th>Cantidad</th><th>%</th></tr></thead><tbody>${dist("q4_administrativa",["BUENO","EXCELENTE","MALO","MUY MALO","REGULAR"])}</tbody></table></div><div><h3>Pregunta 5</h3><p class="q-text">${escapeHTML(SURVEY_QUESTIONS.q5_agilidad)}</p><table><thead><tr><th>Respuesta</th><th>Cantidad</th><th>%</th></tr></thead><tbody>${dist("q5_agilidad",["AGIL","DEMORADOS","MUY DEMORADOS","NI DEMORADOS NI AGIL"])}</tbody></table></div><div><h3>Pregunta 6</h3><p class="q-text">${escapeHTML(SURVEY_QUESTIONS.q6_recomendaria)}</p><table><thead><tr><th>Respuesta</th><th>Cantidad</th><th>%</th></tr></thead><tbody>${dist("q6_recomendaria",["SI","NO"])}</tbody></table></div></div></section><section class="print-table-section"><div class="print-table-title"><div><span class="print-kicker">DETALLE</span><h2>Respuestas de las encuestas</h2></div><strong>${total} resultado${total===1?"":"s"}</strong></div><div class="print-table-scroll"><table><thead><tr><th>Fecha</th><th>Asesor</th><th>Zona</th><th>Usuario</th><th>Q2 Servicio</th><th>Q3 Técnica</th><th>Q4 Administrativa</th><th>Q5 Agilidad</th><th>Q6 Recomienda</th><th>Q7 Recomendación / felicitación</th></tr></thead><tbody>${detail}</tbody></table></div></section></div>`;
+    const headerHTML=`${config.logo_url?`<div class="print-logo"><img loading="lazy" src="${config.logo_url}" alt="Logo"></div>`:""}<div class="print-header"><div><span class="print-kicker">REPORTE DE ENCUESTAS</span><h1>Satisfacción de usuarios</h1><p>Periodo: <strong>${escapeHTML(period)}</strong></p></div><div class="print-generated">Generado: ${new Date().toLocaleString("es-CO")}</div></div>`;
+    const summaryHTML=`<div class="print-summary"><div class="print-summary-card"><span>Total encuestas</span><strong>${total}</strong></div><div class="print-summary-card"><span>Recomiendan</span><strong>${yes} (${pct(yes)}%)</strong></div><div class="print-summary-card"><span>No recomiendan</span><strong>${no} (${pct(no)}%)</strong></div></div>`;
+    const sectionsHTML=`<section class="print-table-section"><div class="print-table-title"><div><span class="print-kicker">POR ASESOR</span><h2>Encuestas registradas por asesor</h2></div></div><div class="print-table-scroll"><table><thead><tr><th>Asesor</th><th>Total</th><th>Sí</th><th>No</th><th>% Sí</th></tr></thead><tbody>${advisorRows}</tbody></table></div></section><section class="print-table-section"><div class="print-table-title"><div><span class="print-kicker">POR ZONA</span><h2>Encuestas realizadas por zona</h2></div></div><div class="print-table-scroll"><table><thead><tr><th>Zona</th><th>Encuestas</th><th>%</th></tr></thead><tbody>${zoneRows}</tbody></table></div></section><section class="print-table-section"><div class="print-table-title"><div><span class="print-kicker">DISTRIBUCIÓN</span><h2>Respuestas por pregunta</h2></div></div><div class="survey-print-distributions">${qaDistBlock("Pregunta 2",SURVEY_Q_FULL.q2,cnt("q2_servicio",GOOD),total)}${qaDistBlock("Pregunta 3",SURVEY_Q_FULL.q3,cnt("q3_tecnica",GOOD),total)}${qaDistBlock("Pregunta 4",SURVEY_Q_FULL.q4,cnt("q4_administrativa",GOOD),total)}${qaDistBlock("Pregunta 5",SURVEY_Q_FULL.q5,cnt("q5_agilidad",["AGIL","DEMORADOS","MUY DEMORADOS","NI DEMORADOS NI AGIL"]),total)}${qaDistBlock("Pregunta 6",SURVEY_Q_FULL.q6,cnt("q6_recomendaria",["SI","NO"]),total)}</div></section>`;
+    const withNote=(val,note)=>escapeHTML(val||"—")+(note?`<small>Observación: ${escapeHTML(note)}</small>`:"");
+    const cards=list.map((s,i)=>{
+      const a=s.perfiles||{},name=[a.nombre,a.apellido].filter(Boolean).join(" ")||a.email||"—";
+      const head=`Encuesta ${i+1} · ${escapeHTML(formatDate(s.fecha_encuesta))} · Asesor: ${escapeHTML(name)} · Zona: ${escapeHTML(s.zona_encuesta||"Sin zona")}`;
+      return qaTable(head,[
+        [SURVEY_Q_FULL.q1,escapeHTML(s.codigo_nombre_usuario||"—")],
+        [SURVEY_Q_FULL.q2,withNote(s.q2_servicio,s.observacion_q2)],
+        [SURVEY_Q_FULL.q3,withNote(s.q3_tecnica,s.observacion_q3)],
+        [SURVEY_Q_FULL.q4,withNote(s.q4_administrativa,s.observacion_q4)],
+        [SURVEY_Q_FULL.q5,withNote(s.q5_agilidad,s.observacion_q5)],
+        [SURVEY_Q_FULL.q6,withNote(s.q6_recomendaria,s.observacion_q6)],
+        [SURVEY_Q_FULL.q7,escapeHTML(s.q7_recomendacion||"—")]
+      ]);
+    });
+    return composeQASheets({headerHTML,summaryHTML,sectionsHTML,cards,perSheet:14,detailTitle:"Preguntas y respuestas por encuesta"});
   }
 
   async function downloadSurveyExcel(){
@@ -713,12 +822,17 @@
       const wr=window.XLSX.utils.aoa_to_sheet(resumen);wr["!cols"]=[{wch:34},{wch:70},{wch:15},{wch:15}];
       const wb=window.XLSX.utils.book_new();window.XLSX.utils.book_append_sheet(wb,wr,sheetName);
       const detail=list.map(s=>{const a=s.perfiles||{};return {
-        "Fecha":s.fecha_encuesta||"","Asesor":[a.nombre,a.apellido].filter(Boolean).join(" ")||a.email||"","Zona":s.zona_encuesta||"","Código y nombre del usuario":s.codigo_nombre_usuario||"",
-        "P2 Servicio":s.q2_servicio||"","Observación P2":s.observacion_q2||"","P3 Área técnica":s.q3_tecnica||"","Observación P3":s.observacion_q3||"",
-        "P4 Área administrativa":s.q4_administrativa||"","Observación P4":s.observacion_q4||"","P5 Agilidad":s.q5_agilidad||"","P6 Recomendaría":s.q6_recomendaria||"","P7 Recomendación / felicitación":s.q7_recomendacion||""
+        "Fecha":s.fecha_encuesta||"","Asesor":[a.nombre,a.apellido].filter(Boolean).join(" ")||a.email||"","Zona":s.zona_encuesta||"",
+        [SURVEY_Q_FULL.q1]:s.codigo_nombre_usuario||"",
+        [SURVEY_Q_FULL.q2]:s.q2_servicio||"","Observación P2":s.observacion_q2||"",
+        [SURVEY_Q_FULL.q3]:s.q3_tecnica||"","Observación P3":s.observacion_q3||"",
+        [SURVEY_Q_FULL.q4]:s.q4_administrativa||"","Observación P4":s.observacion_q4||"",
+        [SURVEY_Q_FULL.q5]:s.q5_agilidad||"","Observación P5":s.observacion_q5||"",
+        [SURVEY_Q_FULL.q6]:s.q6_recomendaria||"","Observación P6":s.observacion_q6||"",
+        [SURVEY_Q_FULL.q7]:s.q7_recomendacion||""
       };});
-      const ws=window.XLSX.utils.json_to_sheet(detail.length?detail:[{"Fecha":"","Asesor":"","Código y nombre del usuario":""}],{});
-      ws["!cols"]=[{wch:12},{wch:24},{wch:18},{wch:32},{wch:18},{wch:32},{wch:18},{wch:32},{wch:22},{wch:32},{wch:28},{wch:18},{wch:45}];
+      const ws=window.XLSX.utils.json_to_sheet(detail.length?detail:[{"Mensaje":"No hay encuestas para los filtros seleccionados"}],{});
+      ws["!cols"]=[{wch:12},{wch:24},{wch:18},{wch:32},{wch:24},{wch:32},{wch:24},{wch:32},{wch:24},{wch:32},{wch:26},{wch:32},{wch:18},{wch:32},{wch:50}];
       window.XLSX.utils.book_append_sheet(wb,ws,"Detalle de encuestas");
 
       const charts=[
@@ -815,87 +929,53 @@
     advisorReportSales=[...merged.values()].sort((a,b)=>String(b.fecha_venta||"").localeCompare(String(a.fecha_venta||""))||Number(b.id)-Number(a.id));advisorReportLoadedKey=key;renderAdvisorTable();
   }
 
-  async function loadSurveyReportData(force=false){
-    // El reporte de encuestas es administrativo. Sin filtros se muestran
-    // únicamente las últimas 10 encuestas ya cargadas por el dashboard.
-    // Cuando el usuario aplica cualquier filtro, se consulta Supabase para
-    // obtener el histórico correspondiente, sin descargarlo de entrada.
-    if(!currentUser||currentProfile?.rol!=="administrador")return;
-
-    const textFilter=value("filtroEncuestaTexto").trim();
-    const advisorFilter=selectedSurveyAdvisorIds.slice();
-    const recommendFilter=value("filtroEncuestaQ6");
-    const zoneFilter=value("filtroEncuestaZona");
-    const from=value("filtroEncuestaDesde");
-    const to=value("filtroEncuestaHasta");
-    const hasFilter=Boolean(textFilter||advisorFilter.length||recommendFilter||zoneFilter||from||to);
-
-    // Estado inicial: últimas encuestas registradas, sin importar la fecha.
-    // (Antes se reutilizaban sólo las de HOY que trae el dashboard, por lo que
-    //  el reporte aparecía completamente en 0 cualquier día sin encuestas.)
-    if(!hasFilter){
-      const recentKey="survey-report-recent:tvmax:v2";
-      let rows=await cachedQuery(recentKey,async()=>{
-        const r=await sbClient.from("encuestas")
-          .select("id,asesor_id,codigo_nombre_usuario,q2_servicio,observacion_q2,q3_tecnica,observacion_q3,q4_administrativa,observacion_q4,q5_agilidad,observacion_q5,q6_recomendaria,observacion_q6,q7_recomendacion,zona_encuesta,fecha_encuesta,created_at,updated_at")
-          .order("fecha_encuesta",{ascending:false}).order("id",{ascending:false}).limit(SURVEY_REPORT_RECENT_LIMIT);
-        if(r.error)throw r.error;
-        return r.data||[];
-      });
-      if(!Array.isArray(rows))rows=[];
-      const ids=[...new Set(rows.map(s=>s.asesor_id).filter(Boolean))];
-      let profiles=[];
-      if(ids.length){
-        const profileKey=`survey-report-recent-profiles:tvmax:${ids.slice().sort().join(",")}`;
-        profiles=await cachedQuery(profileKey,async()=>{
-          const r=await sbClient.from("perfiles").select("id,nombre,apellido,email,zona,activo,rol").in("id",ids);
-          if(r.error)throw r.error;
-          return r.data||[];
-        });
-      }
-      const profileMap=new Map(profiles.map(p=>[p.id,p]));
-      surveyReportData=rows.map(s=>({...s,perfiles:s.perfiles||profileMap.get(s.asesor_id)||null}));
-      surveyReportLoadedKey="recent-10";
-      populateSurveyZoneFilter();
-      populateSurveyAdvisorFilter();
-      renderSurveyReport();
-      return;
-    }
-
-    const key=`survey-report:tvmax:${textFilter.toLowerCase()}:${advisorFilter.slice().sort().join(",")}:${recommendFilter}:${zoneFilter}:${from||"all"}:${to||"all"}`;
-    if(!force&&surveyReportLoadedKey===key)return;
-    if(surveyReportLoading&&!force)return surveyReportLoading;
-
-    surveyReportLoading=(async()=>{
-      let q=sbClient.from("encuestas").select("id,asesor_id,codigo_nombre_usuario,q2_servicio,observacion_q2,q3_tecnica,observacion_q3,q4_administrativa,observacion_q4,q5_agilidad,observacion_q5,q6_recomendaria,observacion_q6,q7_recomendacion,zona_encuesta,fecha_encuesta,created_at,updated_at").order("id",{ascending:false});
+  const SURVEY_COLS="id,asesor_id,codigo_nombre_usuario,q2_servicio,observacion_q2,q3_tecnica,observacion_q3,q4_administrativa,observacion_q4,q5_agilidad,observacion_q5,q6_recomendaria,observacion_q6,q7_recomendacion,zona_encuesta,fecha_encuesta,created_at,updated_at";
+  // Consulta directa a Supabase (sin caché) con los filtros de pantalla.
+  // full=false → solo las últimas encuestas; full=true → TODAS las que cumplan los filtros (paginado).
+  async function fetchSurveyRows(full){
+    const textFilter=value("filtroEncuestaTexto").trim(),advisorFilter=selectedSurveyAdvisorIds.slice(),recommendFilter=value("filtroEncuestaQ6"),zoneFilter=value("filtroEncuestaZona"),from=value("filtroEncuestaDesde"),to=value("filtroEncuestaHasta");
+    const rows=[];let start=0;const size=1000;
+    while(true){
+      let q=sbClient.from("encuestas").select(SURVEY_COLS).order("fecha_encuesta",{ascending:false}).order("id",{ascending:false});
       if(from)q=q.gte("fecha_encuesta",from);
       if(to)q=q.lte("fecha_encuesta",to);
       if(advisorFilter.length)q=q.in("asesor_id",advisorFilter);
       if(zoneFilter)q=q.eq("zona_encuesta",zoneFilter);
       if(recommendFilter)q=q.eq("q6_recomendaria",recommendFilter);
       if(textFilter)q=q.ilike("codigo_nombre_usuario",`%${textFilter.replace(/[%_]/g," ")}%`);
-
+      q=full?q.range(start,start+size-1):q.limit(SURVEY_REPORT_RECENT_LIMIT);
       const r=await q;
       if(r.error)throw r.error;
-      const rows=r.data||[];
-      const ids=[...new Set(rows.map(s=>s.asesor_id).filter(Boolean))];
-      let profiles=[];
-      if(ids.length){
-        const profileKey=`survey-report-profiles:tvmax:${ids.slice().sort().join(",")}`;
-        profiles=await cachedQuery(profileKey,async()=>{
-          const pr=await sbClient.from("perfiles").select("id,nombre,apellido,email,zona,activo,rol").in("id",ids);
-          if(pr.error)throw pr.error;
-          return pr.data||[];
-        });
-      }
-      const profileMap=new Map(profiles.map(p=>[p.id,p]));
-      surveyReportData=rows.map(s=>({...s,perfiles:profileMap.get(s.asesor_id)||null}));
-      surveyReportLoadedKey=key;
-      populateSurveyZoneFilter();
-      populateSurveyAdvisorFilter();
-      renderSurveyReport();
+      rows.push(...(r.data||[]));
+      if(!full||!r.data||r.data.length<size)break;
+      start+=size;
+    }
+    const ids=[...new Set(rows.map(x=>x.asesor_id).filter(Boolean))];
+    let profiles=[];
+    if(ids.length){
+      const pr=await sbClient.from("perfiles").select("id,nombre,apellido,email,zona,activo,rol").in("id",ids);
+      if(pr.error)throw pr.error;
+      profiles=pr.data||[];
+    }
+    const map=new Map(profiles.map(p=>[p.id,p]));
+    return rows.map(x=>({...x,perfiles:map.get(x.asesor_id)||null}));
+  }
+  function hasSurveyFilters(){return Boolean(value("filtroEncuestaTexto").trim()||selectedSurveyAdvisorIds.length||value("filtroEncuestaQ6")||value("filtroEncuestaZona")||value("filtroEncuestaDesde")||value("filtroEncuestaHasta"));}
+  async function loadSurveyReportData(force=false){
+    // Reporte administrativo. Sin filtros: últimas encuestas registradas. Con filtros: todo el histórico que coincida.
+    if(!currentUser||currentProfile?.rol!=="administrador")return;
+    if(surveyReportLoading&&!force)return surveyReportLoading;
+    surveyReportLoading=(async()=>{
+      surveyReportData=await fetchSurveyRows(hasSurveyFilters());
+      populateSurveyZoneFilter();populateSurveyAdvisorFilter();renderSurveyReport();
     })().finally(()=>{surveyReportLoading=null;});
     return surveyReportLoading;
+  }
+  // Antes de vista previa / imprimir / PDF / Excel se recargan TODAS las encuestas que cumplan los filtros.
+  async function loadSurveyReportForExport(){
+    if(currentProfile?.rol!=="administrador"){throw new Error("Solo el administrador puede generar el reporte.");}
+    surveyReportData=await fetchSurveyRows(true);
+    populateSurveyZoneFilter();populateSurveyAdvisorFilter();renderSurveyReport();
   }
 
   function ensureSurveyZoneFilter(){
@@ -933,57 +1013,45 @@
     const desde=value("filtroDesdeAdmin"),hasta=value("filtroHastaAdmin"),period=desde||hasta?`${desde?formatDate(desde):"Inicio"} – ${hasta?formatDate(hasta):"Actual"}`:"Todos los periodos";
     return `<div class="print-report-sheet compact-pdf">${config.logo_url?`<div class="print-logo"><img loading="lazy" src="${config.logo_url}" alt="Logo"></div>`:""}<div class="print-header"><div><span class="print-kicker">REPORTE DE OPERACIONES</span><h1>Ventas e instalaciones</h1><p>Periodo: <strong>${escapeHTML(period)}</strong></p></div><div class="print-generated">Generado: ${new Date().toLocaleString("es-CO")}</div></div><div class="print-summary"><div class="print-summary-card"><span>Total operaciones</span><strong>${total}</strong></div><div class="print-summary-card"><span>Ventas</span><strong>${ventas}</strong></div><div class="print-summary-card"><span>Reconexiones</span><strong>${recon}</strong></div><div class="print-summary-card"><span>Realizadas</span><strong>${real}</strong></div><div class="print-summary-card"><span>Pendientes</span><strong>${pending}</strong></div><div class="print-summary-card"><span>Canceladas</span><strong>${cancel}</strong></div><div class="print-summary-card print-admin-goal-card"><span>Meta administrador · ${escapeHTML(getMonthLabel())}</span><strong>${adminMade}/${adminGoal} · ${adminPct}%</strong><small>Solo ventas</small></div></div><section class="print-charts"><div class="print-chart-card"><h2>Operaciones</h2><div class="print-donut">${donutSVG(pct(ventas))}<div class="print-donut-center"><strong>${total}</strong><span>total</span></div></div><div class="print-legend"><span>Venta <strong>${pct(ventas)}%</strong></span><span>Reconexión <strong>${pct(recon)}%</strong></span><span>Otros <strong>${pct(otros)}%</strong></span></div></div><div class="print-chart-card"><h2>Estado</h2><div class="print-donut">${donutSVG(pct(real))}<div class="print-donut-center"><strong>${pct(real)}%</strong><span>realizadas</span></div></div><div class="print-legend"><span>Realizada <strong>${pct(real)}%</strong></span><span>Pendiente <strong>${pct(pending)}%</strong></span><span>Cancelada <strong>${pct(cancel)}%</strong></span></div></div></section><section class="print-table-section"><div class="print-table-title"><div><span class="print-kicker">META MENSUAL</span><h2>Meta del administrador</h2></div><strong>${adminMade}/${adminGoal} · ${adminPct}%</strong></div><div class="print-admin-goal-bar"><div><span style="width:${adminPct}%"></span></div></div><div class="print-table-scroll"><table><thead><tr><th>Asesor</th><th>Operaciones del mes</th><th>Meta mensual</th><th>% cumplimiento</th></tr></thead><tbody>${adminGoalRows}</tbody></table></div></section><p class="print-footnote">Resumen ejecutivo · el detalle completo de las ${total} operaciones registradas y los gráficos ampliados están disponibles en el archivo Excel.</p></div>`;
   }
-  function buildSurveySummaryHTML(){
-    const list=getFilteredSurveys(),total=list.length,yes=list.filter(s=>s.q6_recomendaria==="SI").length,no=list.filter(s=>s.q6_recomendaria==="NO").length;
-    const pct=n=>total?Math.round(n/total*100):0;
-    const advisorRows=surveyReportPeople().map(a=>{
-      const rows=list.filter(s=>s.asesor_id===a.id), y=rows.filter(s=>s.q6_recomendaria==="SI").length, p=rows.length?Math.round(y/rows.length*100):0;
-      if(!rows.length)return "";
-      const name=[a.nombre,a.apellido].filter(Boolean).join(" ")||a.email||"Asesor";
-      return `<tr><td>${escapeHTML(name)}</td><td>${rows.length}</td><td>${y}</td><td>${rows.length-y}</td><td>${p}%</td></tr>`;
-    }).join("")||'<tr><td colspan="5" class="print-empty-row">No hay datos.</td></tr>';
-    const dist=(field,opts)=>opts.map(o=>`<tr><td>${escapeHTML(o)}</td><td>${list.filter(s=>s[field]===o).length}</td><td>${pct(list.filter(s=>s[field]===o).length)}%</td></tr>`).join("");
-    const period=value("filtroEncuestaDesde")||value("filtroEncuestaHasta")?`${value("filtroEncuestaDesde")?formatDate(value("filtroEncuestaDesde")):"Inicio"} – ${value("filtroEncuestaHasta")?formatDate(value("filtroEncuestaHasta")):"Actual"}`:"Todos los periodos";
-    return `<div class="print-report-sheet survey-print-sheet compact-pdf">${config.logo_url?`<div class="print-logo"><img loading="lazy" src="${config.logo_url}" alt="Logo"></div>`:""}<div class="print-header"><div><span class="print-kicker">REPORTE DE ENCUESTAS</span><h1>Satisfacción de usuarios</h1><p>Periodo: <strong>${escapeHTML(period)}</strong></p></div><div class="print-generated">Generado: ${new Date().toLocaleString("es-CO")}</div></div><div class="print-summary"><div class="print-summary-card"><span>Total encuestas</span><strong>${total}</strong></div><div class="print-summary-card"><span>Recomiendan</span><strong>${yes} (${pct(yes)}%)</strong></div><div class="print-summary-card"><span>No recomiendan</span><strong>${no} (${pct(no)}%)</strong></div></div><section class="print-table-section"><div class="print-table-title"><div><span class="print-kicker">POR ASESOR</span><h2>Encuestas registradas por asesor</h2></div></div><div class="print-table-scroll"><table><thead><tr><th>Asesor</th><th>Total</th><th>Sí</th><th>No</th><th>% Sí</th></tr></thead><tbody>${advisorRows}</tbody></table></div></section><section class="print-table-section"><div class="print-table-title"><div><span class="print-kicker">POR ZONA</span><h2>Encuestas realizadas por zona</h2></div></div><div class="print-table-scroll"><table><thead><tr><th>Zona</th><th>Encuestas</th><th>%</th></tr></thead><tbody>${Object.entries(list.reduce((m,s)=>{const z=s.zona_encuesta||"Sin zona";m[z]=(m[z]||0)+1;return m;},{})).sort((a,b)=>b[1]-a[1]).map(([z,n])=>`<tr><td>${escapeHTML(z)}</td><td>${n}</td><td>${pct(n)}%</td></tr>`).join("")||'<tr><td colspan="3" class="print-empty-row">No hay datos por zona.</td></tr>'}</tbody></table></div></section><section class="print-table-section"><div class="print-table-title"><div><span class="print-kicker">DISTRIBUCIÓN</span><h2>Respuestas por pregunta</h2></div></div><div class="survey-print-distributions"><div><h3>Pregunta 2</h3><p class="q-text">${escapeHTML(SURVEY_QUESTIONS.q2_servicio)}</p><table><thead><tr><th>Respuesta</th><th>Cantidad</th><th>%</th></tr></thead><tbody>${dist("q2_servicio",["BUENO","EXCELENTE","MALO","MUY MALO","REGULAR"])}</tbody></table></div><div><h3>Pregunta 3</h3><p class="q-text">${escapeHTML(SURVEY_QUESTIONS.q3_tecnica)}</p><table><thead><tr><th>Respuesta</th><th>Cantidad</th><th>%</th></tr></thead><tbody>${dist("q3_tecnica",["BUENO","EXCELENTE","MALO","MUY MALO","REGULAR"])}</tbody></table></div><div><h3>Pregunta 4</h3><p class="q-text">${escapeHTML(SURVEY_QUESTIONS.q4_administrativa)}</p><table><thead><tr><th>Respuesta</th><th>Cantidad</th><th>%</th></tr></thead><tbody>${dist("q4_administrativa",["BUENO","EXCELENTE","MALO","MUY MALO","REGULAR"])}</tbody></table></div><div><h3>Pregunta 5</h3><p class="q-text">${escapeHTML(SURVEY_QUESTIONS.q5_agilidad)}</p><table><thead><tr><th>Respuesta</th><th>Cantidad</th><th>%</th></tr></thead><tbody>${dist("q5_agilidad",["AGIL","DEMORADOS","MUY DEMORADOS","NI DEMORADOS NI AGIL"])}</tbody></table></div><div><h3>Pregunta 6</h3><p class="q-text">${escapeHTML(SURVEY_QUESTIONS.q6_recomendaria)}</p><table><thead><tr><th>Respuesta</th><th>Cantidad</th><th>%</th></tr></thead><tbody>${dist("q6_recomendaria",["SI","NO"])}</tbody></table></div></div></section><p class="print-footnote">Resumen ejecutivo · el detalle completo de las ${total} encuestas está disponible en el archivo Excel.</p></div>`;
-  }
-
   function previewReport(builder=buildReportHTML){const modal=id("report-preview-modal"),content=id("report-preview-content");if(!modal||!content)return;content.innerHTML=builder();modal.classList.remove("hidden");modal.setAttribute("aria-hidden","false");document.body.classList.add("report-preview-open");}
   function closeReportPreview(){const modal=id("report-preview-modal");if(!modal)return;modal.classList.add("hidden");modal.setAttribute("aria-hidden","true");document.body.classList.remove("report-preview-open");}
   function printReport(builder=buildReportHTML){id("print-report").innerHTML=builder();window.print();}
   async function downloadPDF(builder=buildReportHTML,filePrefix="reporte-ventas"){
     const area=id("print-report");area.innerHTML=builder();area.classList.add("pdf-rendering");
     try{
-      const areaRect=area.getBoundingClientRect();
-      const areaHeight=area.scrollHeight;
-      const breakEls=area.querySelectorAll('tr,.print-summary-card,.print-chart-card,.print-advisor-row,.survey-print-distributions>div,.print-table-title');
-      const breakpointsCss=new Set([areaHeight]);
-      breakEls.forEach(el=>{
-        const r=el.getBoundingClientRect();
-        const bottom=r.bottom-areaRect.top;
-        if(bottom>0&&bottom<areaHeight)breakpointsCss.add(bottom);
-      });
-      const sortedBreaksCss=[...breakpointsCss].sort((a,b)=>a-b);
-      const canvas=await html2canvas(area,{scale:2,useCORS:true,backgroundColor:"#ffffff"});
+      // Cada .print-report-sheet se dibuja en su propio canvas (evita el límite de tamaño en reportes largos).
+      const sheets=[...area.querySelectorAll(":scope > .print-report-sheet")];
+      const targets=sheets.length?sheets:[area];
       const {jsPDF}=window.jspdf;const pdf=new jsPDF({orientation:"landscape",unit:"mm",format:"a4"});
       const pageW=297,pageH=210,margin=8,imgW=pageW-margin*2;
-      const scaleY=canvas.height/areaHeight;
-      const breakpointsPx=sortedBreaksCss.map(v=>v*scaleY);
-      const pxPerPage=canvas.width*(pageH-margin*2)/imgW;
-      let sourceY=0,first=true;
-      while(sourceY<canvas.height-0.5){
-        const target=Math.min(canvas.height,sourceY+pxPerPage);
-        let cut=null;
-        for(const bp of breakpointsPx){ if(bp>sourceY+0.5&&bp<=target+0.5)cut=bp; if(bp>target+0.5)break; }
-        if(cut===null||cut<=sourceY)cut=target;
-        const h=Math.min(cut-sourceY,canvas.height-sourceY);
-        if(h<=0)break;
-        const pageCanvas=document.createElement("canvas");pageCanvas.width=canvas.width;pageCanvas.height=h;
-        pageCanvas.getContext("2d").drawImage(canvas,0,sourceY,canvas.width,h,0,0,canvas.width,h);
-        const pageImg=pageCanvas.toDataURL("image/jpeg",0.95);
-        const hMm=h*imgW/canvas.width;
-        if(!first)pdf.addPage();
-        pdf.addImage(pageImg,"JPEG",margin,margin,imgW,hMm);
-        first=false;sourceY=cut;
+      let first=true;
+      for(const el of targets){
+        const elRect=el.getBoundingClientRect();
+        const elHeight=el.scrollHeight;
+        const breakEls=el.querySelectorAll('tr,.print-summary-card,.print-chart-card,.print-advisor-row,.survey-print-distributions>div,.print-table-title,.qa-table');
+        const breakpointsCss=new Set([elHeight]);
+        breakEls.forEach(b=>{const r=b.getBoundingClientRect();const bottom=r.bottom-elRect.top;if(bottom>0&&bottom<elHeight)breakpointsCss.add(bottom);});
+        const sortedBreaksCss=[...breakpointsCss].sort((a,b)=>a-b);
+        const canvas=await html2canvas(el,{scale:2,useCORS:true,backgroundColor:"#ffffff"});
+        const scaleY=canvas.height/elHeight;
+        const breakpointsPx=sortedBreaksCss.map(v=>v*scaleY);
+        const pxPerPage=canvas.width*(pageH-margin*2)/imgW;
+        let sourceY=0;
+        while(sourceY<canvas.height-0.5){
+          const target=Math.min(canvas.height,sourceY+pxPerPage);
+          let cut=null;
+          for(const bp of breakpointsPx){ if(bp>sourceY+0.5&&bp<=target+0.5)cut=bp; if(bp>target+0.5)break; }
+          if(cut===null||cut<=sourceY)cut=target;
+          const h=Math.min(cut-sourceY,canvas.height-sourceY);
+          if(h<=0)break;
+          const pageCanvas=document.createElement("canvas");pageCanvas.width=canvas.width;pageCanvas.height=h;
+          pageCanvas.getContext("2d").drawImage(canvas,0,sourceY,canvas.width,h,0,0,canvas.width,h);
+          const pageImg=pageCanvas.toDataURL("image/jpeg",0.95);
+          const hMm=h*imgW/canvas.width;
+          if(!first)pdf.addPage();
+          pdf.addImage(pageImg,"JPEG",margin,margin,imgW,hMm);
+          first=false;sourceY=cut;
+        }
       }
       const now=new Date().toISOString().slice(0,10);pdf.save(`${filePrefix}-${now}.pdf`);showToast("PDF descargado correctamente.");
     }catch(e){console.error(e);showToast("No fue posible generar el PDF.",true);}
@@ -1089,7 +1157,7 @@
   function downloadOtherManagementExcel(){try{if(!window.XLSX){showToast("No se pudo cargar el módulo de Excel.",true);return;}const headers=["Asesor","Zona",...OTHER_ACTIVITY_OPTIONS,"Total"];const rows=otherManagementRows.map(r=>[r.nombre,r.zona,...OTHER_ACTIVITY_OPTIONS.map(x=>r.counts[x]),r.total]);const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet([ ["GESTIÓN ADICIONAL POR ASESOR"], ["Desde",value("otros-gestion-desde")||"Inicio","Hasta",value("otros-gestion-hasta")||"Actual"],[],headers,...rows]);ws["!cols"]=headers.map(()=>({wch:22}));XLSX.utils.book_append_sheet(wb,ws,"Gestión adicional");XLSX.writeFile(wb,`gestion-adicional-${new Date().toISOString().slice(0,10)}.xlsx`);showToast("Excel de gestión adicional descargado.");}catch(e){console.error(e);showToast("No fue posible generar el Excel de gestión adicional.",true);}}
   function showAuthView(){["auth-view","vista-asesor","vista-encuestas","admin-dashboard","vista-admin","vista-otros-gestion","vista-reporte-encuestas","vista-reporte-conectividad","vista-usuarios","vista-configuracion","vista-respaldo"].forEach(x=>id(x).classList.add("hidden"));id("auth-view").classList.remove("hidden");id("session-area").classList.add("hidden");id("btn-menu").classList.add("hidden");id("sidebar").classList.add("hidden");}
   function showView(viewId){["auth-view","vista-asesor","vista-encuestas","admin-dashboard","vista-admin","vista-otros-gestion","vista-reporte-encuestas","vista-reporte-conectividad","vista-usuarios","vista-configuracion","vista-respaldo"].forEach(x=>id(x).classList.add("hidden"));id(viewId).classList.remove("hidden");if(viewId!=="auth-view"&&currentProfile){id("session-area").classList.remove("hidden");id("btn-menu").classList.remove("hidden");id("sidebar").classList.remove("hidden");}if(viewId==="vista-admin")loadAdvisorsForFilters();if(viewId==="vista-otros-gestion")loadOtherManagement().catch(e=>{console.error("Error al cargar gestión adicional",e);showToast("No se pudo cargar la gestión adicional. Verifica la columna otros_datos en Supabase.",true);});
-    if(viewId==="vista-reporte-encuestas"){ensureSurveyZoneFilter();loadSurveyReportData().catch(e=>{console.error("No fue posible cargar el reporte de encuestas",e);showToast("No fue posible cargar el reporte de encuestas. Revisa tu conexión o los permisos.",true);});}
+    if(viewId==="vista-reporte-encuestas"){ensureSurveyZoneFilter();loadSurveyReportData().catch(e=>{console.error("No fue posible cargar el reporte de encuestas",e);showToast("No fue posible cargar el reporte de encuestas: "+(e?.message||"revisa tu conexión, los permisos o la migración SQL")+".",true);});}
     if(viewId==="vista-reporte-conectividad"){loadConnectivityReportData().catch(e=>{console.error("No fue posible cargar las encuestas de conectividad",e);showToast("No fue posible cargar las encuestas de conectividad. Ejecuta la migración SQL y revisa los permisos.",true);});}
   }
   async function logout(){const {error}=await sbClient.auth.signOut();if(error)showToast("No fue posible cerrar la sesión.",true);}
