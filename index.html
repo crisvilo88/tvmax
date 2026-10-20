@@ -78,6 +78,16 @@
         </div>
       </div>
 
+      <div class="card survey-selector-card">
+        <div class="card-heading"><div><span class="section-kicker">TIPO DE ENCUESTA</span><h3>¿Cuál encuesta deseas realizar?</h3><p class="muted">Selecciona el formulario que vas a diligenciar.</p></div></div>
+        <div class="form-actions">
+          <button id="btn-select-survey-satisfaction" class="btn-primary" type="button">Encuesta de satisfacción </button>
+          <button id="btn-select-survey-connectivity" class="btn-secondary" type="button">Encuesta de conectividad</button>
+          <button id="btn-open-connectivity-report" class="btn-secondary admin-only" type="button">Reportes de conectividad</button>
+        </div>
+      </div>
+
+      <div id="satisfaction-survey-panel">
       <div class="card form-card survey-card">
         <div class="card-heading">
           <div><span class="section-kicker">NUEVA ENCUESTA</span><h3>Encuesta de satisfacción</h3></div>
@@ -176,7 +186,7 @@
         </form>
       </div>
 
-      <div class="card table-card">
+      <div class="card table-card" id="satisfaction-survey-history">
         <div class="card-heading table-heading">
           <div><span class="section-kicker">HISTORIAL</span><h3>Encuestas diligenciadas por mí</h3></div>
           <span id="advisor-survey-count" class="result-count">0 encuestas</span>
@@ -187,6 +197,63 @@
             <tbody id="tabla-encuestas-asesor"></tbody>
           </table>
         </div>
+      </div>
+      </div><!-- /satisfaction-survey-panel -->
+
+      <div id="connectivity-survey-panel" class="hidden">
+        <div class="card form-card survey-card">
+          <div class="card-heading"><div><span class="section-kicker">NUEVA ENCUESTA</span><h3>Diagnóstico de conectividad residencial</h3></div><span class="survey-badge">5 preguntas</span></div>
+          <form id="connectivity-survey-form" class="survey-form">
+            <div class="form-group"><label for="conn-nombre">Nombre completo *</label><input id="conn-nombre" required maxlength="160"></div>
+            <div class="form-group"><label for="conn-identificacion">Identificación *</label><input id="conn-identificacion" required maxlength="40"></div>
+            <div class="form-group"><label for="conn-celular">Celular *</label><input id="conn-celular" type="tel" required maxlength="30"></div>
+            <div class="form-group"><label for="conn-barrio">Barrio / Sector *</label><input id="conn-barrio" required maxlength="160"></div>
+            <div class="form-group"><label for="conn-estrato">Estrato *</label><select id="conn-estrato" required><option value="">Seleccione...</option><option value="1">1</option><option value="2">2</option></select></div>
+            <div class="form-group form-group-wide"><label>1. ¿Cuenta actualmente su hogar con servicio de Internet fijo residencial? *</label><div class="survey-options survey-options-inline"><label><input type="radio" name="conn-actual" value="SI" required><span>Sí</span></label><label><input type="radio" name="conn-actual" value="NO"><span>No</span></label></div></div>
+            <div id="conn-current-details" class="form-group form-group-wide hidden">
+              <label>2. Empresa y velocidad contratada *</label>
+              <div class="form-group"><label for="conn-operador">Operador</label><select id="conn-operador"><option value="">Seleccione...</option><option>UNE EPM</option><option>Claro</option><option>Quality Net</option><option>Cablenetbag</option><option value="OTRO">Otro</option></select></div>
+              <div class="form-group hidden" id="conn-operador-otro-wrap"><label for="conn-operador-otro">Otro operador</label><input id="conn-operador-otro" maxlength="120"></div>
+              <div class="form-group"><label for="conn-velocidad">Velocidad contratada</label><select id="conn-velocidad"><option value="">Seleccione...</option><option value="&lt;50 Mbps">&lt; 50 Mbps</option><option value="50-100 Mbps">50–100 Mbps</option><option value="100-300 Mbps">100–300 Mbps</option><option value=">300 Mbps">&gt; 300 Mbps</option></select></div>
+            </div>
+            <div id="conn-no-current-details" class="form-group form-group-wide hidden">
+              <label>3. Si no tiene servicio actual, ¿ha tenido Internet fijo residencial en los últimos 6 meses? *</label>
+              <div class="survey-options survey-options-inline"><label><input type="radio" name="conn-ultimos6" value="SI"><span>Sí</span></label><label><input type="radio" name="conn-ultimos6" value="NO"><span>No</span></label></div>
+              <p id="conn-eligibility-warning" class="muted hidden">Según la regla indicada, haber tenido Internet fijo en los últimos 6 meses inhabilita al hogar para esta oferta.</p>
+            </div>
+            <div class="form-group form-group-wide"><label>4. ¿Le interesa contratar el proyecto de conectividad para cambiar vidas (25 Mbps por $25.000 COP/mes, para estratos 1 y 2, sujeto a requisitos)? *</label><div class="survey-options survey-options-inline"><label><input type="radio" name="conn-interesado" value="SI" required><span>Sí, interesado</span></label><label><input type="radio" name="conn-interesado" value="NO"><span>No</span></label></div></div>
+            <div id="conn-rejection-details" class="form-group form-group-wide hidden">
+              <label>5. Motivo principal de rechazo *</label>
+              <select id="conn-motivo"><option value="">Seleccione...</option><option value="A">A. Ya cuento con servicio superior</option><option value="B">B. Velocidad insuficiente</option><option value="C">C. Requisitos / trámites restrictivos</option><option value="D">D. Condiciones del inmueble / zona</option><option value="E">E. Preferencia por Internet móvil</option><option value="F">F. Otro motivo</option></select>
+              <div id="conn-motivo-otro-wrap" class="form-group hidden"><label for="conn-motivo-otro">Describa el otro motivo</label><textarea id="conn-motivo-otro" rows="3" maxlength="500"></textarea></div>
+            </div>
+            <div class="form-actions form-actions-wide"><button type="reset" class="btn-secondary">Limpiar</button><button type="submit" class="btn-primary">Guardar encuesta de conectividad</button></div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section id="vista-reporte-conectividad" class="view hidden">
+      <div class="page-heading"><div><span class="eyebrow">ADMINISTRACIÓN</span><h2>Reporte de encuesta de conectividad</h2><p>Consulta, previsualiza, imprime y descarga las respuestas de campo.</p></div></div>
+      <div class="card filters-card">
+        <div class="card-heading"><div><span class="section-kicker">FILTROS</span><h3>Registros de conectividad</h3></div><div class="filter-actions">
+          <button id="btn-clear-connectivity-filters" class="btn-secondary" type="button">Limpiar filtros</button>
+          <button id="btn-preview-connectivity-report" class="btn-secondary" type="button">Vista previa</button>
+          <button id="btn-print-connectivity-report" class="btn-primary" type="button">Imprimir</button>
+          <button id="btn-pdf-connectivity-report" class="btn-primary" type="button">Descargar PDF</button>
+          <button id="btn-excel-connectivity-report" class="btn-secondary" type="button">Descargar Excel</button>
+        </div></div>
+        <div class="filters-grid">
+          <div class="form-group"><label for="conn-report-search">Buscar nombre / documento / barrio</label><input id="conn-report-search" type="search" placeholder="Buscar..."></div>
+          <div class="form-group"><label for="conn-report-estrato">Estrato</label><select id="conn-report-estrato"><option value="">Todos</option><option value="1">1</option><option value="2">2</option></select></div>
+          <div class="form-group"><label for="conn-report-interest">Interés</label><select id="conn-report-interest"><option value="">Todos</option><option value="SI">Interesados</option><option value="NO">No interesados</option></select></div>
+          <div class="form-group"><label for="conn-report-eligibility">Elegibilidad</label><select id="conn-report-eligibility"><option value="">Todas</option><option value="ELEGIBLE">Elegible según respuestas</option><option value="INHABILITADO">Inhabilitado por regla de 6 meses</option></select></div>
+          <div class="form-group"><label for="conn-report-from">Fecha desde</label><input id="conn-report-from" type="date"></div>
+          <div class="form-group"><label for="conn-report-to">Fecha hasta</label><input id="conn-report-to" type="date"></div>
+        </div>
+      </div>
+      <div class="card table-card"><div class="card-heading table-heading"><div><span class="section-kicker">RESULTADOS</span><h3>Encuestas de conectividad</h3></div><span id="conn-report-count" class="result-count">0 resultados</span></div>
+        <div class="table-wrapper"><table class="survey-report-table"><thead><tr><th>Fecha</th><th>Asesor</th><th>Nombre</th><th>Identificación</th><th>Celular</th><th>Barrio / Sector</th><th>Estrato</th><th>Internet actual</th><th>Operador</th><th>Velocidad</th><th>Internet últimos 6 meses</th><th>Interesado</th><th>Motivo rechazo</th><th>Elegibilidad</th></tr></thead><tbody id="conn-report-table"></tbody></table></div>
       </div>
     </section>
 

@@ -570,3 +570,18 @@ label{color:#263247;}
 
 /* Gestión adicional por asesor */
 #vista-otros-gestion .table-wrapper{overflow:auto}#vista-otros-gestion table{min-width:1450px}#otros-datos-select{min-height:112px;padding:10px;border-radius:10px}#otros-datos-help{display:block;margin-top:6px}
+
+/* Encuesta de conectividad */
+.survey-selector-card { margin-bottom: 1rem; }
+.survey-selector-card .form-actions { justify-content: flex-start; flex-wrap: wrap; }
+#conn-current-details, #conn-no-current-details, #conn-rejection-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .85rem; align-items: start; }
+#conn-current-details > label, #conn-no-current-details > label, #conn-rejection-details > label,
+#conn-eligibility-warning { grid-column: 1 / -1; }
+#conn-current-details.hidden, #conn-no-current-details.hidden, #conn-rejection-details.hidden,
+#conn-operador-otro-wrap.hidden, #conn-motivo-otro-wrap.hidden { display: none !important; }
+#conn-eligibility-warning { color: #a16207; background: #fef3c7; border-radius: 8px; padding: .75rem; margin: 0; }
+@media (max-width: 680px) {
+  #conn-current-details, #conn-no-current-details, #conn-rejection-details { grid-template-columns: 1fr; }
+  #conn-current-details > label, #conn-no-current-details > label, #conn-rejection-details > label,
+  #conn-eligibility-warning { grid-column: 1; }
+}
