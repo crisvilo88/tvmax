@@ -519,12 +519,11 @@
     const interested=rows.filter(r=>r.interesado==="SI").length,ineligible=rows.filter(r=>r.elegibilidad==="INHABILITADO").length;
     const pct=n=>total?Math.round(n/total*100):0;
     const d=connectivityDistributions(rows);
-    const period=value("conn-report-from")||value("conn-report-to")?`${value("conn-report-from")?formatDate(value("conn-report-from")):"Inicio"} – ${value("conn-report-to")?formatDate(value("conn-report-to")):"Actual"}`:"Todos los periodos";
-    const headerHTML=`<div class="print-header"><div><span class="print-kicker">REPORTE DE CAMPO</span><h1>Encuesta de diagnóstico de conectividad</h1><p>Periodo: <strong>${escapeHTML(period)}</strong></p></div><div class="print-generated">Generado: ${new Date().toLocaleString("es-CO")}</div></div>`;
+    const headerHTML=`${config.logo_url?`<div class="print-logo"><img loading="lazy" src="${config.logo_url}" alt="Logo"></div>`:""}<div class="print-header"><div><span class="print-kicker">REPORTE DE CAMPO</span><h1>Encuesta de diagnóstico de conectividad</h1></div></div>`;
     const summaryHTML=`<div class="print-summary"><div class="print-summary-card"><span>Total encuestas</span><strong>${total}</strong></div><div class="print-summary-card"><span>Interesados</span><strong>${interested} (${pct(interested)}%)</strong></div><div class="print-summary-card"><span>Inhabilitados por regla de 6 meses</span><strong>${ineligible}</strong></div></div>`;
     const sectionsHTML=`<section class="print-table-section"><div class="print-table-title"><div><span class="print-kicker">DISTRIBUCIÓN</span><h2>Respuestas por pregunta</h2></div></div><div class="survey-print-distributions">${qaDistBlock("Datos de control","Estrato",d.estrato,total)}${qaDistBlock("Pregunta 1",CONN_QUESTIONS.q1,d.q1,total)}${qaDistBlock("Pregunta 2 · Operador",CONN_QUESTIONS.q2,d.q2op,d.q2op.reduce((a,x)=>a+x[1],0))}${qaDistBlock("Pregunta 2 · Velocidad",CONN_QUESTIONS.q2,d.q2vel,d.q2vel.reduce((a,x)=>a+x[1],0))}${qaDistBlock("Pregunta 3",CONN_QUESTIONS.q3,d.q3,d.q3.reduce((a,x)=>a+x[1],0))}${qaDistBlock("Pregunta 4",CONN_QUESTIONS.q4,d.q4,total)}${qaDistBlock("Pregunta 5",CONN_QUESTIONS.q5,d.q5,d.q5.reduce((a,x)=>a+x[1],0))}</div></section>`;
     const cards=rows.map((r,i)=>{
-      const head=`Encuesta ${i+1} · ${escapeHTML(formatDate(r.fecha_encuesta))} · Asesor: ${escapeHTML(connectivityAdvisorName(r))} · ${r.elegibilidad==="INHABILITADO"?"INHABILITADO":"Elegible según respuestas"}`;
+      const head=`Encuesta ${i+1} · Asesor: ${escapeHTML(connectivityAdvisorName(r))} · ${r.elegibilidad==="INHABILITADO"?"INHABILITADO":"Elegible según respuestas"}`;
       const control=[["Nombre",r.nombre_completo],["Identificación",r.identificacion],["Celular",r.celular],["Barrio / Sector",r.barrio_sector],["Estrato",r.estrato]].map(([q,a])=>[q+":",escapeHTML(a||"—")]);
       return qaTable(head,[...control,...connectivityQA(r).map(([q,a])=>[q,escapeHTML(a)])]);
     });
@@ -534,8 +533,7 @@
     if(!window.XLSX){showToast("No se pudo cargar el módulo de Excel.",true);return;}
     const rows=getFilteredConnectivityRows(),total=rows.length,d=connectivityDistributions(rows);
     const pct=n=>`${total?Math.round(n/total*100):0}%`;
-    const period=value("conn-report-from")||value("conn-report-to")?`${value("conn-report-from")?formatDate(value("conn-report-from")):"Inicio"} – ${value("conn-report-to")?formatDate(value("conn-report-to")):"Actual"}`:"Todos los periodos";
-    const aoa=[["REPORTE DE ENCUESTAS DE DIAGNÓSTICO DE CONECTIVIDAD"],["Periodo",period],["Total encuestas",total],[]];
+    const aoa=[["REPORTE DE ENCUESTAS DE DIAGNÓSTICO DE CONECTIVIDAD"],["Total encuestas",total],[]];
     const block=(title,q,pairs)=>{const t=pairs.reduce((a,x)=>a+x[1],0);aoa.push([title,q]);aoa.push(["Respuesta","Cantidad","%"]);pairs.forEach(([l,c])=>aoa.push([l,c,t?`${Math.round(c/t*100)}%`:"0%"]));aoa.push([]);};
     block("DATOS DE CONTROL","Estrato",d.estrato);
     block("PREGUNTA 1",CONN_QUESTIONS.q1,d.q1);
@@ -548,12 +546,12 @@
     const wsR=XLSX.utils.aoa_to_sheet(aoa);wsR["!cols"]=[{wch:42},{wch:90},{wch:10}];
     XLSX.utils.book_append_sheet(wb,wsR,"Resumen por pregunta");
     const data=rows.map(r=>{const qa=connectivityQA(r);return {
-      "Fecha":r.fecha_encuesta||"","Asesor":connectivityAdvisorName(r),"Nombre":r.nombre_completo||"","Identificación":r.identificacion||"","Celular":r.celular||"","Barrio / Sector":r.barrio_sector||"","Estrato":r.estrato||"",
+      "Asesor":connectivityAdvisorName(r),"Nombre":r.nombre_completo||"","Identificación":r.identificacion||"","Celular":r.celular||"","Barrio / Sector":r.barrio_sector||"","Estrato":r.estrato||"",
       [CONN_QUESTIONS.q1]:qa[0][1],[CONN_QUESTIONS.q2]:qa[1][1],[CONN_QUESTIONS.q3]:qa[2][1],[CONN_QUESTIONS.q4]:qa[3][1],[CONN_QUESTIONS.q5]:qa[4][1],
       "Elegibilidad":r.elegibilidad==="INHABILITADO"?"Inhabilitado":"Elegible según respuestas"
     };});
     const ws=XLSX.utils.json_to_sheet(data.length?data:[{"Mensaje":"No hay registros para los filtros seleccionados"}]);
-    ws["!cols"]=[{wch:12},{wch:24},{wch:28},{wch:16},{wch:14},{wch:24},{wch:8},{wch:30},{wch:38},{wch:38},{wch:45},{wch:60},{wch:22}];
+    ws["!cols"]=[{wch:24},{wch:28},{wch:16},{wch:14},{wch:24},{wch:8},{wch:30},{wch:38},{wch:38},{wch:45},{wch:60},{wch:22}];
     XLSX.utils.book_append_sheet(wb,ws,"Preguntas y respuestas");
     XLSX.writeFile(wb,`reporte-encuesta-conectividad-${getTodayISO()}.xlsx`);
     showToast("Reporte Excel de conectividad descargado.");
